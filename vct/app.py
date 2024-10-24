@@ -5,6 +5,7 @@ import streamlit as st
 import uuid
 import re
 import team_sampling
+import team_assignment
 from botocore.exceptions import EventStreamError
 import time
 import random
@@ -28,8 +29,10 @@ logging.basicConfig(level=logging.CRITICAL)
 
 # Prompts and values needed for our LLM prompts
 is_this_build_team_prompt = "Is this asking you to build a new VCT Valorant Team? Respond with only the word yes or no."
+is_this_multi_region_prompt = "Is this asking you to build a team with players from more than two different regions? Respond with only the word yes or no."
 assign_roles_prompt = """ Respond to this with only a json object of the following format where the key is the player type and the value is the group. { "duelist": "vct-international", "sentinel": "vct-international", "controller": "vct-international", "initiator": "vct-international", "flex": "vct-international" }"""
 team_prompt = "I am going to give you a list of python dictionaries. Each dictionary will have 5 key-value pairings representing the 5 players of a Valorant team. The key will represent the player's name. The value will be a python list that is a Yeo-Johnson normalized statistical break down of that player from the 2024 season. From the below teams, select only the best team and return the index in the list where the team dictionary resides. In your response, only include the integer for the index of the best team. Do not include any English words."
+priming_prompt = "If you get asked to analyze of the players, use the statistics that I just sent. Explain initially that the statistics shown represent a a Yeo-Johnson normalized statistical break down from their VCT games. Compare the statistics of the asked player to others using metrics such as standard deviation. Do you return the exact normalized statistics for the player."
 num_teams = 50
 max_retries = 3
 
@@ -107,7 +110,17 @@ if prompt := st.chat_input():
         logging.info("1) LLM A output: " + yes_or_no)
         try:
             if "yes" in yes_or_no.lower():
-                # Second call to LLM A is to determine which player type (duelist, sentinel, controller, initiator, flex) is going to be obtained from which VCT League (International, Challengers, Game Changers)
+                # Second call to LLM A, asking if the request is asking if this is asking for a multi-region team or not
+                prompt_multiple_regions = "\"" + prompt + "\" " + is_this_multi_region_prompt
+
+                llm_a_session_id = str(uuid.uuid4()) # We want this to be a new session every time
+                response_multiple_regions = call_llm(agent_id_A, agent_alias_id_A, llm_a_session_id, prompt_multiple_regions)
+                yes_or_no_regions = response_multiple_regions["output_text"]
+                more_than_two_regions = "yes" in yes_or_no_regions.lower()
+                
+                bedrock_agent_runtime.end_session(client, agent_id_A, agent_alias_id_A, llm_a_session_id)
+
+                # Third call to LLM A is to determine which player type (duelist, sentinel, controller, initiator, flex) is going to be obtained from which VCT League (International, Challengers, Game Changers)
                 # Reset LLM T to not have any context of any previous teams.
                 if not st.session_state.session_id == None:
                     bedrock_agent_runtime.end_session(client, agent_id_TEAM, agent_alias_id_TEAM, st.session_state.session_id)
@@ -127,11 +140,16 @@ if prompt := st.chat_input():
                 bedrock_agent_runtime.end_session(client, agent_id_A, agent_alias_id_A, llm_a_session_id)
 
                 # Remove everything before the { and after the }
-                response_only_json = output_text = output_text[output_text.find("{"):output_text.rfind("}") + 1]
-    
+                response_only_json = json.loads(output_text[output_text.find("{"):output_text.rfind("}") + 1])
+
                 # Call team_sampling to get the list of teams we need
                 team_generator = team_sampling.Team_Generator()
-                list_teams = team_generator.generate_teams(num_teams, json.loads(response_only_json))
+
+                # Add the regions list
+                regions_list = team_assignment.assign_regions(response_only_json, more_than_two_regions)
+                response_only_json["region"] = regions_list
+
+                list_teams = team_generator.generate_teams(num_teams, response_only_json)
 
                 # First call to LLM T to determine which of the num_teams generated team is the best
                 # Retry until we get a response with a proper index
@@ -156,18 +174,16 @@ if prompt := st.chat_input():
                 response = call_llm(agent_id_TEAM, agent_alias_id_TEAM, st.session_state.session_id, team_list_str)
                 output_text = response["output_text"]
                 logging.info("4) LLM TEAM output:" + output_text)  
-
-                # Follow up call to LLM Team to prime it to be prepared to answer follow up questions on any of the players in the team chosen
-                priming_prompt = "If you get asked to analyze of the players, use the statistics that I just sent. Explain initially that the statistics shown represent a a Yeo-Johnson normalized statistical break down from their VCT games."
-                call_llm(agent_id_TEAM, agent_alias_id_TEAM, st.session_state.session_id, priming_prompt)
-
-                logging.info("5) LLM TEAM priming call complete")  
             else:
                 if st.session_state.session_id == None:
                     # If there is no session_id then a team has not been selected and the LLM cannot answer any VCT related questions without a team built
                     output_text = "Please ask to build a VCT Team before asking any other questions."
                     response = {"citations": [],"trace": []} 
                 else:
+                    # Follow up call to LLM Team to prime it to be prepared to answer follow up questions on any of the players in the team chosen
+                    call_llm(agent_id_TEAM, agent_alias_id_TEAM, st.session_state.session_id, priming_prompt)
+                    logging.info("5) LLM TEAM priming call complete")  
+
                     # Call to LLM Team to ask follow up questions regarding a team that was build
                     response = call_llm(agent_id_TEAM, agent_alias_id_TEAM, st.session_state.session_id, prompt)
 

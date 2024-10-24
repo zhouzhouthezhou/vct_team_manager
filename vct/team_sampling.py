@@ -34,22 +34,30 @@ class Team_Generator():
 		probabilities = list(players_dict.values())
 		return random.choices(players, weights=probabilities, k=1)[0]
 
-	def _generate_random_team(self, role_groups):
+	def _generate_random_team(self, role_groups, regions_list):
 		selected_team = {}
-    
+		groups_list = []
+
+		i = 0
 		for role, group in role_groups.items():
-			player_pool = self.pdf_dict[group][role]
+			player_pool = self.pdf_dict[group][role][regions_list[i]]
 			selected_player = self._sample_player(player_pool)
 			selected_team[role] = selected_player
+			i += 1
+			groups_list.append(group)
+			
     
 		team_vector = dict()
+		i = 0
 		for k in selected_team.keys():
 			id = selected_team[k]
 			bucket = role_groups[k]
 			name = self.player_df[bucket].loc[self.player_df[bucket]['id'] == id, ['handle']].drop_duplicates().head(1).values[0][0]
-			team_vector[name] = self.agg_df[bucket].loc[self.agg_df[bucket]['id'] == id].drop(['id'], axis=1).round(3).values.flatten().tolist()
-
+			team_vector[name] = (self.agg_df[bucket].loc[self.agg_df[bucket]['id'] == id].drop(['id'], axis=1).round(3).values.flatten().tolist(), regions_list[i], groups_list[i])
+			i += 1
+			
 		return team_vector
 
 	def generate_teams(self, n, role_groups):
-		return [self._generate_random_team(role_groups) for _ in range(n)]
+		regions_list = role_groups.pop("region")
+		return [self._generate_random_team(role_groups, regions_list) for _ in range(n)]
