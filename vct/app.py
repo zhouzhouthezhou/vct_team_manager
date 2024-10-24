@@ -175,7 +175,7 @@ if prompt := st.chat_input():
                     output_text = response["output_text"]  
         except Exception as e:
             # Catching all exceptions and logging it to not break the user experience
-            output_text = "An error has occurred. Please try again." + str(e)
+            output_text = "An error has occurred. Please try again."
             logging.info(f"An error occurred: {e}")
 
         placeholder.markdown(output_text, unsafe_allow_html=True)
