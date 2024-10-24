@@ -19,8 +19,8 @@ The objective here is to find a way to combine well studied classical methods wi
 ## Features
 
 - Use AWS Glue and PySpark to ingest data obtained from Riot Official Database.
-- Integrate with 2 Claude Sonnet LLM Models as agents on AWS Bedrock for generating user input.
-- Use Principal Component Analysis and Gaussian Mixture Model to identify key performance factors for each role.
+- Integrate with 1 Claude Haiku and 2 Claude Sonnet LLM Models as agents on AWS Bedrock for generating output.
+- Use Principal Component Analysis and Gaussian Mixture Model to identify key performance factors for each role and generate pdf based on the key factors.
 
 ## Installation
 
