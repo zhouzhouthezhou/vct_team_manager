@@ -1,0 +1,6 @@
+Tooling:
+AWS Glue - Data Ingestion and Processing
+S3 Buckets - Storage for VCT JSON data and processed parquets from glue
+AWS Bedrock - LLM Api Calls
+
+For more technical details, see the section 3 of the full write up
