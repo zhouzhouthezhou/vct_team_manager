@@ -1,0 +1,128 @@
+This document is a selection of players from VCT International for use in building Valorant teams that need VCT International players
+The selection of a duelist should be sampled from the following probability distribution:
+    "marteen": 0.196
+    "Derke": 0.189
+    "ZmjjKK": 0.154
+    "Governor": 0.151
+    "zekken": 0.096
+    "Dep": 0.086
+    "aspas": 0.056
+    "Jinggg": 0.039
+    "Keiko": 0.017
+    "something": 0.011
+    "BuZz": 0.003
+    "Wo0t": 0.002
+
+The selection of a sentinal should be sampled from the following probability distribution:
+    "Alfajer": 0.0398183255895742
+    "s0m": 0.0396234922193013
+    "Sayf": 0.038938959481133815
+    "logaN": 0.03833035455639293
+    "suygetsu": 0.03829933383451061
+    "Meteor ": 0.0382773173964975
+    "Spring": 0.03695908225090559
+    "FengF": 0.03512089223031994
+    "NDG": 0.034035144415149175
+    "EIite": 0.033435404025821513
+    "yetujey": 0.032962805071908886
+    "Retla": 0.031649906390201696
+    "Sheydos": 0.03135985465583425
+    "Ezeir": 0.03110105385173817
+    "tuyz": 0.030886651758580387
+    "nAts": 0.03017182292448175
+    "K4DAVRA": 0.029849197369208685
+    "Abo": 0.028869809686046286
+    "benjyfishy": 0.027620932231281526
+    "Less": 0.026870543187657664
+    "leaf": 0.02386421825030871
+    "pANcada": 0.02378818093012057
+    "Wailers": 0.022458851969318638
+    "Lysoar": 0.021991861341045436
+    "Medusa": 0.021323485304257296
+    "yosemite": 0.02117088337749245
+    "Moose": 0.020765071328798023
+    "Destrian": 0.019668660729180342
+    "Surf": 0.019574942962356002
+    "johnqt": 0.018414874158113614
+    "AAK": 0.01787435066875235
+    "Demon1": 0.01777080306334709
+    "aluba": 0.017350872624537314
+    "wippie": 0.01678061547373843
+    "Khalil": 0.014735837886420387
+    "frz": 0.011502424423092229
+    "Victor": 0.00990044499714658
+    "Flashback": 0.004876735584712059
+    "CHICHOO": 0.0020060018007166344
+
+The selection of a controller should be sampled from the following probability distribution:
+    "valyn": 0.07112024873917545
+    "Munchkin": 0.06660095591935436
+    "Shao": 0.06522483576084037
+    "AC": 0.06345063752976511
+    "rglm": 0.053319698444546273
+    "MAZIN": 0.048429055240598734
+    "LuoK1ng": 0.048147396243303
+    "TenZ": 0.04733715982495082
+    "MaKo": 0.046590474542335586
+    "Tomaszy": 0.046414185234905266
+    "ceNder": 0.04511197562183552
+    "mindfreak": 0.044447104296323474
+    "Melser": 0.0439088743376955
+    "2GE": 0.03874918839512672
+    "Apoth": 0.03633184530706715
+    "Tehbotol": 0.03604526387708148
+    "Karon": 0.035842455419253856
+    "sScary": 0.03369805958528992
+    "nizhaotzh": 0.033317975915310036
+    "fl1pzjder": 0.02593172335606525
+    "Boaster": 0.025391605002609972
+    "Zellsis": 0.025071778365275986
+    "ATA KAPTAN": 0.015323872870786147
+    "Bunt": 0.004193630170503946
+
+The selection of an initiator player should be sampled from the following probability distribution:
+    "MrFaliN": 0.09876458957620964
+    "Sacy": 0.09730546673346743
+    "trent": 0.09281847131507052
+    "stax": 0.08054160317230952
+    "Kicks": 0.07953587184491766
+    "Lakia": 0.06509670965644443
+    "AAAAY": 0.06417121894823012
+    "BeYN": 0.05830995118759448
+    "Saadhak": 0.05706601870509248
+    "f0rsakeN": 0.05282673677728596
+    "lenne": 0.05017383439441528
+    "cb": 0.04285607157176681
+    "Crws": 0.0324580831121092
+    "xeppaa": 0.027474576415093967
+    "RieNs": 0.025283056774255283
+    "crazyguy": 0.022148040542118025
+    "carpe": 0.021492820116351095
+    "Cloud": 0.021462689908430317
+    "Shadow ": 0.010214189248837885
+
+The selection of an flex player should be sampled from the following probability distribution:
+    "f0rsakeN": 0.07419788226318959
+    "Rb": 0.07387585958151403
+    "Hiro  ": 0.07251241089993407
+    "d4v41": 0.07010459439716682
+    "suygetsu": 0.06786231959278226
+    "Chronicle": 0.06780213000791106
+    "artzin": 0.06460775502947068
+    "Fit1nho": 0.061926815280992
+    "Rossy": 0.048612482921086275
+    "Deryeon": 0.047347124045591014
+    "Alfajer": 0.04697848567980178
+    "xand": 0.04682994963436334
+    "Wild0reoo": 0.04115261189747501
+    "Sayf": 0.03859576750829063
+    "Wo0t": 0.02995633128519182
+    "o0o0o": 0.028663263885245607
+    "Knightt": 0.027118894586516423
+    "something": 0.02190831233423905
+    "Sheydos": 0.019772126516577736
+    "Yuicaw": 0.01841655799935145
+    "neth": 0.012788325035370253
+    "runneR": 0.01052300274548989
+    "nAts": 0.00844699687244881
+    "heybay": 0.0

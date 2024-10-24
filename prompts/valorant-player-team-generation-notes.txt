@@ -1,0 +1,34 @@
+The goal of these data sets is to provide some context for selecting players to build Valorant teams.
+
+Overview:
+---
+Generally competitive Valorant can be viewed to have 3 levels of players:
+    -VCT International: Tier 1 League
+    -VCT Challengers: Tier 2 League
+    -Valorant Game Changers: Tier 3 League
+
+The player pools and teams samplings for each of the leagues can be found in the following files:
+    -VCT International: vct-international-potential-teams.txt
+    -VCT Challengers: vct-challengers-potential-teams.txt
+    -Valorant Game Changers: game-changers-potential-teams.txt
+
+Motivation:
+---
+The use case of this dataset is to help an LLM generate high performing valorant teams based on a user's request. Some examples of requests are as follows:
+    -"Build a team using only players from VCT International. Assign roles to each player and explain why this composition would be effective in a competitive match."
+    -"Build a team using only players from VCT Challengers. Assign roles to each player and explain why this composition would be effective in a competitive match."
+    -"Build a team using only players from VCT Game Changers. Assign roles to each player and explain why this composition would be effective in a competitive match."
+    -"Build a team that includes at least two players from an underrepresented group, such as the Game Changers program. Define roles and discuss the advantages of this inclusive team structure."
+    -"Build a team with players from at least three different regions. Assign each player a role and explain the benefits of this diverse composition."
+    -"Build a team that includes at least two semi-professional players, such as from VCT Challengers or VCT Game Changers. Define roles and discuss details of how these players were chosen."
+
+Then for any given team composition the LLM should use the data in those files to answer the following:
+    -Player performance with specific agents (in-game playable characters)
+    -Assign roles to players on the team and explain their contribution
+        *Offensive vs. defensive roles
+        *Category of in-game playable character / agent (duelist, sentinel, controller, initiator)
+        *Assign a team IGL (team leader, primary strategist and shotcaller)
+    -Provide insights on team strategy and hypothesize team strengths and weaknesses
+
+As you can see the LLM may be asked to only pick players from one league in which case the LLM should only use the corresponding league file to generate teams.
+The LLM may also be asked to pick players from across multiple leagues in which case the LLM should mix and match players from the leauges and league files that the user specifies.

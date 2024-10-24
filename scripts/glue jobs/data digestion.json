@@ -1,0 +1,286 @@
+{
+	"dag": {},
+	"jobConfig": {
+		"command": "glueetl",
+		"description": "",
+		"role": "arn:aws:iam::054037119284:role/glue_role",
+		"scriptName": "data digestion.py",
+		"version": "4.0",
+		"language": "python-3",
+		"scriptLocation": "s3://aws-glue-assets-054037119284-us-west-2/scripts/",
+		"temporaryDirectory": "s3://aws-glue-assets-054037119284-us-west-2/temporary/",
+		"timeout": 2880,
+		"maxConcurrentRuns": 1,
+		"workerType": "G.1X",
+		"numberOfWorkers": 2,
+		"maxRetries": 0,
+		"metrics": "",
+		"observabilityMetrics": "",
+		"security": "none",
+		"bookmark": "",
+		"logging": "",
+		"spark": false,
+		"sparkConfiguration": "standard",
+		"sparkPath": "",
+		"serverEncryption": false,
+		"glueHiveMetastore": true,
+		"etlAutoScaling": false,
+		"etlAutoTuning": false,
+		"etlAutoTuningJobRules": "",
+		"jobParameters": [],
+		"tags": [],
+		"connectionsList": [],
+		"jobMode": "NOTEBOOK_MODE",
+		"name": "data digestion",
+		"kernel": "glueetl",
+		"pythonPath": "",
+		"dependentPath": "",
+		"referencedPath": "",
+		"pythonShellPrebuiltLibraryOption": "analytics",
+		"pythonVersion": ""
+	},
+	"hasBeenSaved": false,
+	"script": "import time\nimport os\nimport logging\nimport sys\nimport os.path\nimport requests\nimport multiprocessing\nfrom collections import deque\nfrom io import BytesIO\nfrom enum import Enum, auto\nfrom os import listdir\nimport boto3\nimport json\nimport pandas as pd\nimport numpy as np\nfrom sklearn.mixture import BayesianGaussianMixture, GaussianMixture\nfrom sklearn.datasets import make_blobs\nfrom sklearn.decomposition import PCA\nimport matplotlib.pyplot as plt\n# (game-changers, vct-international, vct-challengers)\nLEAGUE = \"vct-international\"\n\n# (2022, 2023, 2024)\nYEAR = 2022\n\ns3 = boto3.client('s3')\nbucket = \"actualvctdata\"\ndef list_s3_files(bucket_name, prefix):\n    s3 = boto3.client('s3')\n    response = s3.list_objects_v2(Bucket=bucket_name, Prefix=prefix)\n    \n    files = []\n    if 'Contents' in response:\n        for obj in response['Contents']:\n            files.append(obj['Key'])\n    \n    return files\n\ndef read_json_from_s3(bucket_name, path):\n    s3 = boto3.client('s3')\n    \n    response = s3.get_object(Bucket=bucket_name, Key=path)\n    content = response['Body'].read().decode('utf-8')\n    \n    return json.loads(content)\nprefix = f'{LEAGUE}/esports-data'\nfiles = list_s3_files(bucket, prefix)\n\nplayer_df = pd.DataFrame(read_json_from_s3(bucket, f'{LEAGUE}/esports-data/players.json'))\nmapping_df = pd.DataFrame(read_json_from_s3(bucket, f'{LEAGUE}/esports-data/mapping_data.json'))\nteam_df = pd.DataFrame(read_json_from_s3(bucket, f'{LEAGUE}/esports-data/teams.json'))\ntournament_df = pd.DataFrame(read_json_from_s3(bucket, f'{LEAGUE}/esports-data/tournaments.json'))\nleague_df = pd.DataFrame(read_json_from_s3(bucket, f'{LEAGUE}/esports-data/leagues.json'))\nplayer_df.head()\nmapping_df.head()\nteam_df.head()\ntournament_df.head()\nleague_df.head()\nlogging.basicConfig(\n    format='{asctime} [{levelname}] {message}',\n    style=\"{\",\n    datefmt=\"%H:%M\",\n    level=logging.CRITICAL,\n    force=True\n)\nclass Map(Enum):\n    ABYSS = auto()\n    ASCENT = auto()\n    BIND = auto()\n    BREEZE = auto()\n    FRACTURE = auto()\n    HAVEN = auto()\n    ICEBOX = auto()\n    LOTUS = auto()\n    PEARL = auto()\n    SPLIT = auto()\n    SUNSET = auto()\n\nmaps = {\n    \"Infinity\": Map.ABYSS,\n    \"Ascent\": Map.ASCENT,\n    \"Duality\": Map.BIND,\n    \"Foxtrot\": Map.BREEZE,\n    \"Canyon\": Map.FRACTURE,\n    \"Triad\": Map.HAVEN,\n    \"Port\": Map.ICEBOX,\n    \"Jam\": Map.LOTUS,\n    \"Pitt\": Map.PEARL,\n    \"Bonsai\": Map.SPLIT,\n    \"Juliett\": Map.SUNSET,\n}\n\nclass RoundVec(Enum):\n    ROUND_NUMBER = 0#\n    OUTCOME = auto()#\n    SIDE = auto()#\n    KILLS = auto()#\n    DEATHS = auto()#\n    ASSISTS = auto()#\n    COMBAT_SCORE = auto()#\n    ####################################\n    # Critical section, do not reorder\n    ####################################\n    KILLS_STINGER = auto()#\n    KILLS_BUCKY = auto()#\n    KILLS_JUDGE = auto()#\n    KILLS_SPECTRE = auto()#\n    KILLS_BULLDOG = auto()#\n    KILLS_GUARDIAN = auto()#\n    KILLS_PHANTOM = auto()#\n    KILLS_VANDAL = auto()#\n    KILLS_MARSHAL = auto()#\n    KILLS_OUTLAW = auto()#\n    KILLS_OPERATOR = auto()#\n    KILLS_ARES = auto()#\n    KILLS_ODIN = auto()#\n    KILLS_CLASSIC = auto()#\n    KILLS_SHORTY = auto()#\n    KILLS_FRENZY = auto()#\n    KILLS_GHOST = auto()#\n    KILLS_SHERIFF = auto()#\n    KILLS_MELEE = auto()#\n    ####################################\n    # End of critical section\n    ####################################\n    TIME_ALIVE = auto()#\n    DEAD = auto()#\n    DAMAGE_TAKEN = auto()#\n    DAMAGE_DONE = auto()#\n    SPIKE_CARRY_PERCENT = auto()#\n    SPIKE_PLANT = auto()#\n    # TODO: map score\n    # TODO: win type\n    # TODO: abilities\n\nclass Weapon(Enum):\n    STINGER = RoundVec.KILLS_STINGER.value\n    BUCKY = auto()\n    JUDGE = auto()\n    SPECTRE = auto()\n    BULLDOG = auto()\n    GUARDIAN = auto()\n    PHANTOM = auto()\n    VANDAL = auto()\n    MARSHAL = auto()\n    OUTLAW = auto()\n    OPERATOR = auto()\n    ARES = auto()\n    ODIN = auto()\n    CLASSIC = auto()\n    SHORTY = auto()\n    FRENZY = auto()\n    GHOST = auto()\n    SHERIFF = auto()\n    MELEE = auto()\n\nclass PlayerRound:\n    def __init__(self, game_id, player_id, map):\n        # TODO: add abilities, player killed data, more damage data\n        self.game_id = game_id\n        self.player_id = player_id\n        self.map = map\n        self.vec = [0] * len(RoundVec)\n\n    def update_vec(self, idx, val):\n        self.vec[idx] = val\n\n    def add_vec(self, idx, i):\n        self.vec[idx] += i\n\n    def get_vec(self, idx):\n        return self.vec[idx]\n\nclass PlayerGame:\n    def __init__(self, p):\n        self.player_id = p\n        self.rounds = list()\n        self.vec = None\n\n    def new_round(self, game_id, player_id, map):\n        self.rounds.append(PlayerRound(game_id, player_id, map))\n\n    def update_current_round(self, idx, val):\n        self.rounds[-1].update_vec(idx, val)\n\n    def add_current_round(self, idx, i):\n        self.rounds[-1].add_vec(idx, i)\n\n    def get_current_round_val(self, idx):\n        return self.rounds[-1].get_vec(idx)\n\n    def calculate_game_vec(self):\n        round_vecs = map(lambda x: x.vec, self.rounds)\n        game_vec = map(lambda x: x/float(len(self.rounds)), map(sum, zip(*round_vecs)))\n        self.vec = list(game_vec)\n        self.vec[RoundVec.ROUND_NUMBER.value] = max([r.vec[RoundVec.ROUND_NUMBER.value] for r in self.rounds])\n\n        if self.player_id not in player_bank:\n            player_bank[self.player_id] = Player(self.player_id)\n        player_bank[self.player_id].add_game(self)\n\nclass Player:\n    def __init__(self, p):\n        self.player_id = p\n        self.games = list()\n        self.vec = None\n\n    def add_game(self, game):\n        self.games.append(game)\n\n    def calculate_player_vec(self):\n        game_vecs = map(lambda x: x.vec, self.games)\n        player_vec = map(lambda x: x/float(len(self.games)), map(sum, zip(*game_vecs)))\n        self.vec = list(player_vec)\n\nclass Game:\n    def _process_event(self, event):\n        if 'snapshot' in event:\n            return\n\n        # side, round number\n        if 'roundStarted' in event:\n            e = event['roundStarted']\n            logging.debug(f'Round started {e}')\n\n            self._processing_round = True\n            self._curr_round_start_time = float(event['metadata']['eventTime']['omittingPauses'][:-1])\n            attacking_team = str(e['spikeMode']['attackingTeam']['value'])\n            for p in self.players:\n                self.players[p].new_round(self.game_id, p, self.map)\n                # Set current round number\n                self.players[p].update_current_round(RoundVec.ROUND_NUMBER.value, e['roundNumber'])\n\n                # Set side\n                if int(p) in self.teams[attacking_team]['players']:\n                    self.players[p].update_current_round(RoundVec.SIDE.value, 1)\n                else:\n                    self.players[p].update_current_round(RoundVec.SIDE.value, -1)\n            return\n\n        # Skip processing if not inside of a round\n        if not self._processing_round:\n            return\n\n        cur_time = float(event['metadata']['eventTime']['omittingPauses'][:-1])\n\n        # damage receive, damage dealt\n        if 'damageEvent' in event:\n            e = event['damageEvent']\n            logging.debug(f'Damage Event {e}')\n\n            # Set damage dealt\n            if 'causerId' in e:\n                causer = str(e['causerId']['value'])\n                self.players[causer].add_current_round(RoundVec.DAMAGE_DONE.value, e['damageAmount'])\n\n            # Set damage received\n            victim = str(e['victimId']['value'])\n            self.players[victim].add_current_round(RoundVec.DAMAGE_TAKEN.value, e['damageAmount'])\n\n            return\n\n        # death flag, weapon kill, time alive, kills, deaths, asissts,\n        if 'playerDied' in event:\n            e = event['playerDied']\n            time_stamp = float(event['metadata']['eventTime']['omittingPauses'][:-1])\n            logging.debug(f'Player Died {e}')\n\n            # Set death flag and death counter\n            dead_player = str(e['deceasedId']['value'])\n            self.players[dead_player].update_current_round(RoundVec.DEAD.value, 1)\n            self.players[dead_player].add_current_round(RoundVec.DEATHS.value, 1)\n\n            # Set time alive\n            time_alive = time_stamp - self._curr_round_start_time\n            self.players[dead_player].update_current_round(RoundVec.TIME_ALIVE.value, time_alive)\n\n            # Update weapon kill tracker and kill counter\n            killer = str(e['killerId']['value'])\n            self.players[killer].add_current_round(RoundVec.KILLS.value, 1)\n            if 'weapon' in e:\n                weapon_guid = e['weapon']['fallback']['guid']\n                if weapon_guid == \"\":\n                    self.players[killer].add_current_round(Weapon.MELEE.value, 1)\n                else:\n                    g = requests.get(f'https://valorant-api.com/v1/weapons/{weapon_guid}')\n                    Weapon[g.json()['data']['displayName'].upper()]\n                    self.players[killer].add_current_round(Weapon[g.json()['data']['displayName'].upper()].value, 1)\n\n            # Update assist counter\n            if 'assistants' in e:\n                for a in e['assistants']:\n                    assister = str(a['assistantId']['value'])\n                    self.players[assister].add_current_round(RoundVec.ASSISTS.value, 1)\n            return\n\n        # spike plant, spike carry time, spike defuse\n        if 'spikeStatus' in event:\n            e = event['spikeStatus']\n            logging.debug(f'Spike Status {e}')\n\n            # Set spike plant flag and update spike carry time and spike defuse flag\n            if e['status'] == \"IN_HANDS\" and 'carrier' in e:\n                if not 'carrier' in e:\n                    logging.warning(\"SPIKE IN_HANDS event with no carrier found\")\n                else:\n                    self._curr_spike_carrier = str(e['carrier']['value'])\n                self._curr_spike_pickup_stamp = float(event['metadata']['eventTime']['omittingPauses'][:-1])\n            elif e['status'] == \"PLANTED\":\n                self.players[self._curr_spike_carrier].update_current_round(RoundVec.SPIKE_PLANT.value, 1)\n                self.players[self._curr_spike_carrier].add_current_round(RoundVec.SPIKE_CARRY_PERCENT.value, cur_time - self._curr_spike_pickup_stamp)\n            elif e['status'] == \"ON_GROUND\":\n                self.players[self._curr_spike_carrier].add_current_round(RoundVec.SPIKE_CARRY_PERCENT.value, cur_time - self._curr_spike_pickup_stamp)\n\n            return\n\n        # combat score, outcome, time alive, noramlize spike carry time\n        if 'roundDecided' in event:\n            e = event['roundDecided']\n            logging.debug(f'Round Decided {e}')\n\n            round_length = cur_time - self._curr_round_start_time\n            winning_team = str(e['result']['winningTeam']['value'])\n            for p in self.players:\n                # Set outcome\n                if int(p) in self.teams[winning_team]['players']:\n                    self.players[p].update_current_round(RoundVec.OUTCOME.value, 1)\n                else:\n                    self.players[p].update_current_round(RoundVec.OUTCOME.value, -1)\n\n                # Set time alive\n                if self.players[p].get_current_round_val(RoundVec.DEAD.value) == 0:\n                    self.players[p].add_current_round(RoundVec.TIME_ALIVE.value, round_length)\n\n                # Normalize spike time\n                spike_time = self.players[p].get_current_round_val(RoundVec.SPIKE_CARRY_PERCENT.value)\n                self.players[p].update_current_round(RoundVec.SPIKE_CARRY_PERCENT.value, spike_time / round_length)\n\n\n            round_end_stamp = float(event['metadata']['eventTime']['omittingPauses'][:-1])\n            while 'snapshot' not in event:\n                event = self.event_feed.popleft()\n\n            e = event['snapshot']\n\n            # Set combat score\n            for p in e['players']:\n                player = str(p['playerId']['value'])\n                self.players[player].update_current_round(RoundVec.COMBAT_SCORE.value, p['scores']['combatScore']['roundScore'])\n\n            self._processing_round = False\n            self._curr_round_start_time = None\n            self._curr_spike_carrier = None\n            self._curr_spike_pickup_stamp = None\n            self._curr_round_start_time = None\n            return\n\n\n    def __init__(self, file):\n        assert(os.path.isfile(file))\n        self.file = file\n        self.players = dict()\n        self.teams = dict()\n        self._curr_round_start_time = None\n        self._curr_spike_carrier = None\n        self._curr_spike_pickup_stamp = None\n        self._curr_round_start_time = None\n        self._processing_round = False\n\n        logging.critical(f\"Reading game {self.file.split('/')[-1]}\")\n        with open(self.file, 'r') as f:\n            # TODO: look into msgspec or similar instead of native json parsing, takes like 10-20 sec to load a game\n            j = json.load(f)\n        logging.info(\"Done reading json\")\n\n        self.event_feed = deque(j)\n\n        first_event = self.event_feed.popleft()\n\n        self.game_id = first_event['platformGameId']\n\n        players = mapping_df.loc[mapping_df['platformGameId'] == self.game_id, 'participantMapping'].values[0]\n        for i, p in enumerate(players.values()):\n            self.players[str(i+1)] = PlayerGame(p)\n\n        second_event = self.event_feed.popleft()\n\n        self.map = maps[second_event['configuration']['selectedMap']['fallback']['displayName']]\n\n        teamid = str(second_event['configuration']['teams'][0]['teamId']['value'])\n        self.teams[teamid] = dict()\n        self.teams[teamid]['players'] = [p['value'] for p in second_event['configuration']['teams'][0]['playersInTeam']]\n        self.teams[teamid]['name'] = team_df.iloc[second_event['configuration']['teams'][0]['teamId']['value']]['slug']\n\n        teamid = str(second_event['configuration']['teams'][1]['teamId']['value'])\n        self.teams[teamid] = dict()\n        self.teams[teamid]['players'] = [p['value'] for p in second_event['configuration']['teams'][1]['playersInTeam']]\n        self.teams[teamid]['name'] = team_df.iloc[second_event['configuration']['teams'][1]['teamId']['value']]['slug']\n\n        # ingest events\n        logging.info(\"Ingesting events...\")\n        with tqdm(total=len(self.event_feed)) as pbar:\n            while len(self.event_feed) != 0:\n                start_len = len(self.event_feed)\n                current_event = self.event_feed.popleft()\n                self._process_event(current_event)\n                pbar.update(start_len - len(self.event_feed))\n        logging.info(\"Done ingesting events\")\n\n        # ingestion post processing\n        logging.info(\"Processing data...\")\n        # for p in tqdm(self.players):\n        #     self.players[p].calculate_game_vec()\n        logging.info(\"Done processing data\")\njob.commit()",
+	"notebook": {
+		"metadata": {
+			"kernelspec": {
+				"name": "glue_pyspark",
+				"display_name": "Glue PySpark",
+				"language": "python"
+			},
+			"language_info": {
+				"name": "Python_Glue_Session",
+				"mimetype": "text/x-python",
+				"codemirror_mode": {
+					"name": "python",
+					"version": 3
+				},
+				"pygments_lexer": "python3",
+				"file_extension": ".py"
+			}
+		},
+		"nbformat_minor": 4,
+		"nbformat": 4,
+		"cells": [
+			{
+				"cell_type": "markdown",
+				"source": "# AWS Glue Studio Notebook\n##### You are now running a AWS Glue Studio notebook; To start using your notebook you need to start an AWS Glue Interactive Session.\n",
+				"metadata": {
+					"editable": true,
+					"trusted": true
+				}
+			},
+			{
+				"cell_type": "code",
+				"source": "%%configure\n{\n    \"number_of_workers\": 2\n}",
+				"metadata": {
+					"trusted": true,
+					"tags": []
+				},
+				"execution_count": 3,
+				"outputs": [
+					{
+						"name": "stderr",
+						"text": "You are already connected to a glueetl session 1c3c3fd5-3e60-461b-bb87-e87054881a76.\n\nNo change will be made to the current session that is set as glueetl. The session configuration change will apply to newly created sessions.\n",
+						"output_type": "stream"
+					},
+					{
+						"name": "stdout",
+						"text": "The following configurations have been updated: {'number_of_workers': 2}\n",
+						"output_type": "stream"
+					}
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": "import time\nimport os\nimport logging\nimport sys\nimport os.path\nimport requests\nimport multiprocessing\nfrom collections import deque\nfrom io import BytesIO\nfrom enum import Enum, auto\nfrom os import listdir\nimport boto3\nimport json\nimport pandas as pd\nimport numpy as np\nfrom sklearn.mixture import BayesianGaussianMixture, GaussianMixture\nfrom sklearn.datasets import make_blobs\nfrom sklearn.decomposition import PCA\nimport matplotlib.pyplot as plt",
+				"metadata": {
+					"trusted": true,
+					"editable": true
+				},
+				"execution_count": 42,
+				"outputs": [
+					{
+						"name": "stdout",
+						"text": "\n",
+						"output_type": "stream"
+					}
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"source": "#### Get mapping data from json\n\n",
+				"metadata": {
+					"editable": true,
+					"tags": [],
+					"trusted": true
+				}
+			},
+			{
+				"cell_type": "code",
+				"source": "# (game-changers, vct-international, vct-challengers)\nLEAGUE = \"vct-international\"\n\n# (2022, 2023, 2024)\nYEAR = 2022\n\ns3 = boto3.client('s3')\nbucket = \"actualvctdata\"",
+				"metadata": {
+					"trusted": true,
+					"tags": []
+				},
+				"execution_count": 15,
+				"outputs": [
+					{
+						"name": "stdout",
+						"text": "\n",
+						"output_type": "stream"
+					}
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": "def list_s3_files(bucket_name, prefix):\n    s3 = boto3.client('s3')\n    response = s3.list_objects_v2(Bucket=bucket_name, Prefix=prefix)\n    \n    files = []\n    if 'Contents' in response:\n        for obj in response['Contents']:\n            files.append(obj['Key'])\n    \n    return files\n\ndef read_json_from_s3(bucket_name, path):\n    s3 = boto3.client('s3')\n    \n    response = s3.get_object(Bucket=bucket_name, Key=path)\n    content = response['Body'].read().decode('utf-8')\n    \n    return json.loads(content)",
+				"metadata": {
+					"trusted": true,
+					"tags": []
+				},
+				"execution_count": 22,
+				"outputs": [
+					{
+						"name": "stdout",
+						"text": "\n",
+						"output_type": "stream"
+					}
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": "prefix = f'{LEAGUE}/esports-data'\nfiles = list_s3_files(bucket, prefix)\n\nplayer_df = pd.DataFrame(read_json_from_s3(bucket, f'{LEAGUE}/esports-data/players.json'))\nmapping_df = pd.DataFrame(read_json_from_s3(bucket, f'{LEAGUE}/esports-data/mapping_data.json'))\nteam_df = pd.DataFrame(read_json_from_s3(bucket, f'{LEAGUE}/esports-data/teams.json'))\ntournament_df = pd.DataFrame(read_json_from_s3(bucket, f'{LEAGUE}/esports-data/tournaments.json'))\nleague_df = pd.DataFrame(read_json_from_s3(bucket, f'{LEAGUE}/esports-data/leagues.json'))",
+				"metadata": {
+					"trusted": true,
+					"tags": []
+				},
+				"execution_count": 35,
+				"outputs": [
+					{
+						"name": "stdout",
+						"text": "\n",
+						"output_type": "stream"
+					}
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": "player_df.head()",
+				"metadata": {
+					"trusted": true,
+					"tags": []
+				},
+				"execution_count": 36,
+				"outputs": [
+					{
+						"name": "stdout",
+						"text": "                   id   handle  ...            created_at            updated_at\n0  106230271915475632    Derke  ...  2021-05-13T22:37:14Z  2021-10-07T10:36:07Z\n1  106651762097869967      Nbs  ...  2021-08-11T07:47:36Z  2021-11-17T18:59:01Z\n2  106230373601204025   sScary  ...  2021-07-30T09:16:30Z  2022-02-08T09:51:14Z\n3  106732694881302524   SKYLEN  ...  2021-08-10T16:10:25Z  2021-09-30T15:36:30Z\n4  107735301889701087  Dreamas  ...  2022-05-10T13:09:39Z  2022-05-10T13:10:02Z\n\n[5 rows x 9 columns]\n",
+						"output_type": "stream"
+					}
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": "mapping_df.head()",
+				"metadata": {
+					"trusted": true,
+					"tags": []
+				},
+				"execution_count": 37,
+				"outputs": [
+					{
+						"name": "stdout",
+						"text": "                             platformGameId  ...                                 participantMapping\n0  val:cb611626-2910-46d3-8678-6501bf317f9f  ...  {'1': '106651749419114537', '2': '106651802407...\n1  val:c1514574-4ba4-4ad3-b5ef-dbfef9976946  ...  {'1': '106525489805459472', '2': '108273989413...\n2  val:1db2b321-85bd-4c8c-9ec8-8063e869119f  ...  {'1': '106651749419114537', '2': '106651802407...\n3  val:44f65f2d-1de9-43da-8df3-c543ef0ac5a8  ...  {'1': '106525473804840689', '2': '106525472657...\n4  val:093dcb1f-0350-4c44-aecb-c07972bb8da3  ...  {'1': '107786690677632484', '2': '108329605365...\n\n[5 rows x 5 columns]\n",
+						"output_type": "stream"
+					}
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": "team_df.head()",
+				"metadata": {
+					"trusted": true,
+					"tags": []
+				},
+				"execution_count": 38,
+				"outputs": [
+					{
+						"name": "stdout",
+						"text": "                   id acronym  ...             slug             name\n0  109710990829217937     TAL  ...    talon-esports    Talon Esports\n1  105680883461219195      TL  ...      team-liquid      Team Liquid\n2  107739366448281763      S1  ...       sector-one       Sector One\n3  105680908693496715     FPX  ...  funplus-phoenix  FunPlus Phoenix\n4  107735185441106189     BBL  ...              bbl              BBL\n\n[5 rows x 7 columns]\n",
+						"output_type": "stream"
+					}
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": "tournament_df.head()",
+				"metadata": {
+					"trusted": true,
+					"tags": []
+				},
+				"execution_count": 39,
+				"outputs": [
+					{
+						"name": "stdout",
+						"text": "                   id     status  ...        time_zone                       name\n0  109710937834457925  published  ...          Etc/UTC        lock_in_brazil_2023\n1  112053399716844250  published  ...  Europe/Sarajevo  vct_masters_shanghai_2024\n2  108517568479631144  published  ...          Etc/UTC     masters_2_2022_stage_1\n3  107997085398196447  published  ...          Etc/UTC     masters_1_2022_stage_1\n4  106868306782316745  published  ...          Etc/UTC                   stage_03\n\n[5 rows x 5 columns]\n",
+						"output_type": "stream"
+					}
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": "league_df.head()",
+				"metadata": {
+					"trusted": true,
+					"tags": []
+				},
+				"execution_count": 40,
+				"outputs": [
+					{
+						"name": "stdout",
+						"text": "            league_id region  ...         name         slug\n0  109940824119741550   INTL  ...  vct_masters  vct_masters\n1  109974804058058602   INTL  ...  vct_pacific  vct_pacific\n2  109551178413356399   INTL  ...  vct_lock_in  vct_lock_in\n3  106109559530232966   INTL  ...     vct_emea     vct_emea\n4  111691194187846945     CN  ...    vct_china    vct_china\n\n[5 rows x 6 columns]\n",
+						"output_type": "stream"
+					}
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"source": "#### Ingestions",
+				"metadata": {
+					"tags": []
+				}
+			},
+			{
+				"cell_type": "code",
+				"source": "logging.basicConfig(\n    format='{asctime} [{levelname}] {message}',\n    style=\"{\",\n    datefmt=\"%H:%M\",\n    level=logging.CRITICAL,\n    force=True\n)",
+				"metadata": {
+					"trusted": true,
+					"tags": []
+				},
+				"execution_count": 41,
+				"outputs": [
+					{
+						"name": "stdout",
+						"text": "\n",
+						"output_type": "stream"
+					}
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": "class Map(Enum):\n    ABYSS = auto()\n    ASCENT = auto()\n    BIND = auto()\n    BREEZE = auto()\n    FRACTURE = auto()\n    HAVEN = auto()\n    ICEBOX = auto()\n    LOTUS = auto()\n    PEARL = auto()\n    SPLIT = auto()\n    SUNSET = auto()\n\nmaps = {\n    \"Infinity\": Map.ABYSS,\n    \"Ascent\": Map.ASCENT,\n    \"Duality\": Map.BIND,\n    \"Foxtrot\": Map.BREEZE,\n    \"Canyon\": Map.FRACTURE,\n    \"Triad\": Map.HAVEN,\n    \"Port\": Map.ICEBOX,\n    \"Jam\": Map.LOTUS,\n    \"Pitt\": Map.PEARL,\n    \"Bonsai\": Map.SPLIT,\n    \"Juliett\": Map.SUNSET,\n}\n\nclass RoundVec(Enum):\n    ROUND_NUMBER = 0#\n    OUTCOME = auto()#\n    SIDE = auto()#\n    KILLS = auto()#\n    DEATHS = auto()#\n    ASSISTS = auto()#\n    COMBAT_SCORE = auto()#\n    ####################################\n    # Critical section, do not reorder\n    ####################################\n    KILLS_STINGER = auto()#\n    KILLS_BUCKY = auto()#\n    KILLS_JUDGE = auto()#\n    KILLS_SPECTRE = auto()#\n    KILLS_BULLDOG = auto()#\n    KILLS_GUARDIAN = auto()#\n    KILLS_PHANTOM = auto()#\n    KILLS_VANDAL = auto()#\n    KILLS_MARSHAL = auto()#\n    KILLS_OUTLAW = auto()#\n    KILLS_OPERATOR = auto()#\n    KILLS_ARES = auto()#\n    KILLS_ODIN = auto()#\n    KILLS_CLASSIC = auto()#\n    KILLS_SHORTY = auto()#\n    KILLS_FRENZY = auto()#\n    KILLS_GHOST = auto()#\n    KILLS_SHERIFF = auto()#\n    KILLS_MELEE = auto()#\n    ####################################\n    # End of critical section\n    ####################################\n    TIME_ALIVE = auto()#\n    DEAD = auto()#\n    DAMAGE_TAKEN = auto()#\n    DAMAGE_DONE = auto()#\n    SPIKE_CARRY_PERCENT = auto()#\n    SPIKE_PLANT = auto()#\n    # TODO: map score\n    # TODO: win type\n    # TODO: abilities\n\nclass Weapon(Enum):\n    STINGER = RoundVec.KILLS_STINGER.value\n    BUCKY = auto()\n    JUDGE = auto()\n    SPECTRE = auto()\n    BULLDOG = auto()\n    GUARDIAN = auto()\n    PHANTOM = auto()\n    VANDAL = auto()\n    MARSHAL = auto()\n    OUTLAW = auto()\n    OPERATOR = auto()\n    ARES = auto()\n    ODIN = auto()\n    CLASSIC = auto()\n    SHORTY = auto()\n    FRENZY = auto()\n    GHOST = auto()\n    SHERIFF = auto()\n    MELEE = auto()\n",
+				"metadata": {},
+				"execution_count": null,
+				"outputs": []
+			},
+			{
+				"cell_type": "code",
+				"source": "class PlayerRound:\n    def __init__(self, game_id, player_id, map):\n        # TODO: add abilities, player killed data, more damage data\n        self.game_id = game_id\n        self.player_id = player_id\n        self.map = map\n        self.vec = [0] * len(RoundVec)\n\n    def update_vec(self, idx, val):\n        self.vec[idx] = val\n\n    def add_vec(self, idx, i):\n        self.vec[idx] += i\n\n    def get_vec(self, idx):\n        return self.vec[idx]\n\nclass PlayerGame:\n    def __init__(self, p):\n        self.player_id = p\n        self.rounds = list()\n        self.vec = None\n\n    def new_round(self, game_id, player_id, map):\n        self.rounds.append(PlayerRound(game_id, player_id, map))\n\n    def update_current_round(self, idx, val):\n        self.rounds[-1].update_vec(idx, val)\n\n    def add_current_round(self, idx, i):\n        self.rounds[-1].add_vec(idx, i)\n\n    def get_current_round_val(self, idx):\n        return self.rounds[-1].get_vec(idx)\n\n    def calculate_game_vec(self):\n        round_vecs = map(lambda x: x.vec, self.rounds)\n        game_vec = map(lambda x: x/float(len(self.rounds)), map(sum, zip(*round_vecs)))\n        self.vec = list(game_vec)\n        self.vec[RoundVec.ROUND_NUMBER.value] = max([r.vec[RoundVec.ROUND_NUMBER.value] for r in self.rounds])\n\n        if self.player_id not in player_bank:\n            player_bank[self.player_id] = Player(self.player_id)\n        player_bank[self.player_id].add_game(self)\n\nclass Player:\n    def __init__(self, p):\n        self.player_id = p\n        self.games = list()\n        self.vec = None\n\n    def add_game(self, game):\n        self.games.append(game)\n\n    def calculate_player_vec(self):\n        game_vecs = map(lambda x: x.vec, self.games)\n        player_vec = map(lambda x: x/float(len(self.games)), map(sum, zip(*game_vecs)))\n        self.vec = list(player_vec)\n\nclass Game:\n    def _process_event(self, event):\n        if 'snapshot' in event:\n            return\n\n        # side, round number\n        if 'roundStarted' in event:\n            e = event['roundStarted']\n            logging.debug(f'Round started {e}')\n\n            self._processing_round = True\n            self._curr_round_start_time = float(event['metadata']['eventTime']['omittingPauses'][:-1])\n            attacking_team = str(e['spikeMode']['attackingTeam']['value'])\n            for p in self.players:\n                self.players[p].new_round(self.game_id, p, self.map)\n                # Set current round number\n                self.players[p].update_current_round(RoundVec.ROUND_NUMBER.value, e['roundNumber'])\n\n                # Set side\n                if int(p) in self.teams[attacking_team]['players']:\n                    self.players[p].update_current_round(RoundVec.SIDE.value, 1)\n                else:\n                    self.players[p].update_current_round(RoundVec.SIDE.value, -1)\n            return\n\n        # Skip processing if not inside of a round\n        if not self._processing_round:\n            return\n\n        cur_time = float(event['metadata']['eventTime']['omittingPauses'][:-1])\n\n        # damage receive, damage dealt\n        if 'damageEvent' in event:\n            e = event['damageEvent']\n            logging.debug(f'Damage Event {e}')\n\n            # Set damage dealt\n            if 'causerId' in e:\n                causer = str(e['causerId']['value'])\n                self.players[causer].add_current_round(RoundVec.DAMAGE_DONE.value, e['damageAmount'])\n\n            # Set damage received\n            victim = str(e['victimId']['value'])\n            self.players[victim].add_current_round(RoundVec.DAMAGE_TAKEN.value, e['damageAmount'])\n\n            return\n\n        # death flag, weapon kill, time alive, kills, deaths, asissts,\n        if 'playerDied' in event:\n            e = event['playerDied']\n            time_stamp = float(event['metadata']['eventTime']['omittingPauses'][:-1])\n            logging.debug(f'Player Died {e}')\n\n            # Set death flag and death counter\n            dead_player = str(e['deceasedId']['value'])\n            self.players[dead_player].update_current_round(RoundVec.DEAD.value, 1)\n            self.players[dead_player].add_current_round(RoundVec.DEATHS.value, 1)\n\n            # Set time alive\n            time_alive = time_stamp - self._curr_round_start_time\n            self.players[dead_player].update_current_round(RoundVec.TIME_ALIVE.value, time_alive)\n\n            # Update weapon kill tracker and kill counter\n            killer = str(e['killerId']['value'])\n            self.players[killer].add_current_round(RoundVec.KILLS.value, 1)\n            if 'weapon' in e:\n                weapon_guid = e['weapon']['fallback']['guid']\n                if weapon_guid == \"\":\n                    self.players[killer].add_current_round(Weapon.MELEE.value, 1)\n                else:\n                    g = requests.get(f'https://valorant-api.com/v1/weapons/{weapon_guid}')\n                    Weapon[g.json()['data']['displayName'].upper()]\n                    self.players[killer].add_current_round(Weapon[g.json()['data']['displayName'].upper()].value, 1)\n\n            # Update assist counter\n            if 'assistants' in e:\n                for a in e['assistants']:\n                    assister = str(a['assistantId']['value'])\n                    self.players[assister].add_current_round(RoundVec.ASSISTS.value, 1)\n            return\n\n        # spike plant, spike carry time, spike defuse\n        if 'spikeStatus' in event:\n            e = event['spikeStatus']\n            logging.debug(f'Spike Status {e}')\n\n            # Set spike plant flag and update spike carry time and spike defuse flag\n            if e['status'] == \"IN_HANDS\" and 'carrier' in e:\n                if not 'carrier' in e:\n                    logging.warning(\"SPIKE IN_HANDS event with no carrier found\")\n                else:\n                    self._curr_spike_carrier = str(e['carrier']['value'])\n                self._curr_spike_pickup_stamp = float(event['metadata']['eventTime']['omittingPauses'][:-1])\n            elif e['status'] == \"PLANTED\":\n                self.players[self._curr_spike_carrier].update_current_round(RoundVec.SPIKE_PLANT.value, 1)\n                self.players[self._curr_spike_carrier].add_current_round(RoundVec.SPIKE_CARRY_PERCENT.value, cur_time - self._curr_spike_pickup_stamp)\n            elif e['status'] == \"ON_GROUND\":\n                self.players[self._curr_spike_carrier].add_current_round(RoundVec.SPIKE_CARRY_PERCENT.value, cur_time - self._curr_spike_pickup_stamp)\n\n            return\n\n        # combat score, outcome, time alive, noramlize spike carry time\n        if 'roundDecided' in event:\n            e = event['roundDecided']\n            logging.debug(f'Round Decided {e}')\n\n            round_length = cur_time - self._curr_round_start_time\n            winning_team = str(e['result']['winningTeam']['value'])\n            for p in self.players:\n                # Set outcome\n                if int(p) in self.teams[winning_team]['players']:\n                    self.players[p].update_current_round(RoundVec.OUTCOME.value, 1)\n                else:\n                    self.players[p].update_current_round(RoundVec.OUTCOME.value, -1)\n\n                # Set time alive\n                if self.players[p].get_current_round_val(RoundVec.DEAD.value) == 0:\n                    self.players[p].add_current_round(RoundVec.TIME_ALIVE.value, round_length)\n\n                # Normalize spike time\n                spike_time = self.players[p].get_current_round_val(RoundVec.SPIKE_CARRY_PERCENT.value)\n                self.players[p].update_current_round(RoundVec.SPIKE_CARRY_PERCENT.value, spike_time / round_length)\n\n\n            round_end_stamp = float(event['metadata']['eventTime']['omittingPauses'][:-1])\n            while 'snapshot' not in event:\n                event = self.event_feed.popleft()\n\n            e = event['snapshot']\n\n            # Set combat score\n            for p in e['players']:\n                player = str(p['playerId']['value'])\n                self.players[player].update_current_round(RoundVec.COMBAT_SCORE.value, p['scores']['combatScore']['roundScore'])\n\n            self._processing_round = False\n            self._curr_round_start_time = None\n            self._curr_spike_carrier = None\n            self._curr_spike_pickup_stamp = None\n            self._curr_round_start_time = None\n            return\n\n\n    def __init__(self, file):\n        assert(os.path.isfile(file))\n        self.file = file\n        self.players = dict()\n        self.teams = dict()\n        self._curr_round_start_time = None\n        self._curr_spike_carrier = None\n        self._curr_spike_pickup_stamp = None\n        self._curr_round_start_time = None\n        self._processing_round = False\n\n        logging.critical(f\"Reading game {self.file.split('/')[-1]}\")\n        with open(self.file, 'r') as f:\n            # TODO: look into msgspec or similar instead of native json parsing, takes like 10-20 sec to load a game\n            j = json.load(f)\n        logging.info(\"Done reading json\")\n\n        self.event_feed = deque(j)\n\n        first_event = self.event_feed.popleft()\n\n        self.game_id = first_event['platformGameId']\n\n        players = mapping_df.loc[mapping_df['platformGameId'] == self.game_id, 'participantMapping'].values[0]\n        for i, p in enumerate(players.values()):\n            self.players[str(i+1)] = PlayerGame(p)\n\n        second_event = self.event_feed.popleft()\n\n        self.map = maps[second_event['configuration']['selectedMap']['fallback']['displayName']]\n\n        teamid = str(second_event['configuration']['teams'][0]['teamId']['value'])\n        self.teams[teamid] = dict()\n        self.teams[teamid]['players'] = [p['value'] for p in second_event['configuration']['teams'][0]['playersInTeam']]\n        self.teams[teamid]['name'] = team_df.iloc[second_event['configuration']['teams'][0]['teamId']['value']]['slug']\n\n        teamid = str(second_event['configuration']['teams'][1]['teamId']['value'])\n        self.teams[teamid] = dict()\n        self.teams[teamid]['players'] = [p['value'] for p in second_event['configuration']['teams'][1]['playersInTeam']]\n        self.teams[teamid]['name'] = team_df.iloc[second_event['configuration']['teams'][1]['teamId']['value']]['slug']\n\n        # ingest events\n        logging.info(\"Ingesting events...\")\n        with tqdm(total=len(self.event_feed)) as pbar:\n            while len(self.event_feed) != 0:\n                start_len = len(self.event_feed)\n                current_event = self.event_feed.popleft()\n                self._process_event(current_event)\n                pbar.update(start_len - len(self.event_feed))\n        logging.info(\"Done ingesting events\")\n\n        # ingestion post processing\n        logging.info(\"Processing data...\")\n        # for p in tqdm(self.players):\n        #     self.players[p].calculate_game_vec()\n        logging.info(\"Done processing data\")",
+				"metadata": {},
+				"execution_count": null,
+				"outputs": []
+			}
+		]
+	}
+}

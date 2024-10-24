@@ -1,0 +1,68 @@
+I am going to give you a python like list of lists
+The parent list will have 5 elements representing the 5 players of a valorant team
+Each of the sublists will then be a Yeo-Johnson normalized statistical break down of that player from the 2024 season
+
+Ths sublists have the following format:
+ROUND_NUMBER: average number of rounds in a game with this player
+OUTCOME: a players tendancy to win or lose
+SIDE: if a player tends to play on one side more than the other
+KILLS: average number of kills per round
+DEATHS: average number of deaths per round
+ASSISTS: average number of assists per round
+COMBAT_SCORE: average combat score per round
+KILLS_STINGER: average number of stinger kills per round
+KILLS_BUCKY: average number of bucky kills per round
+KILLS_JUDGE: average number of judge kills per round
+KILLS_SPECTRE: average number of spectre kills per round
+KILLS_BULLDOG: average number of bulldog kills per round
+KILLS_GUARDIAN: average number of gaurdian kills per round
+KILLS_PHANTOM: average number of phantom kills per round
+KILLS_VANDAL: average number of vandal kills per round
+KILLS_MARSHAL: average number of marshal kills per round
+KILLS_OUTLAW: average nubmer of outlaw kills per round
+KILLS_OPERATOR: average number of operator kills per round
+KILLS_ARES: average number of ares kills per round
+KILLS_ODIN: average number of odin kills per round
+KILLS_CLASSIC: average number of classic kills per round
+KILLS_SHORTY: average number of shorty kills per round
+KILLS_FRENZY: average number of frenzy kills per round
+KILLS_GHOST: average number of ghost kills per round
+KILLS_SHERIFF: average number of sheriff kills per round
+KILLS_MELEE: average number of melee kills per round
+TIME_ALIVE: average time spend alive per round
+DEAD: probability of dying in any given round
+DAMAGE_TAKEN: average damage taken per round
+DAMAGE_DONE: average damage done per round
+SPIKE_CARRY_PERCENT: average percent of round spend carrying the spike
+SPIKE_PLANT: probabililty of planting the spike in a round
+ASTRA_PICK_RATE: probability of picking astra
+BREACH_PICK_RATE: probability of picking breach
+BRIMSTONE_PICK_RATE: probability of picking brimstone
+CHAMBER_PICK_RATE: probability of picking chamber
+CYPHER_PICK_RATE: probability of picking cypher
+DEADLOCK_PICK_RATE: probability of picking deadlock
+FADE_PICK_RATE: probability of picking fade
+GEKKO_PICK_RATE: probability of picking gekko
+HARBOR_PICK_RATE: probability of picking harbor
+JETT_PICK_RATE: probability of picking jett
+KAYO_PICK_RATE: probability of picking kayo
+KILLJOY_PICK_RATE: probability of picking killjoy
+NEON_PICK_RATE: probability of picking neon
+OMEN_PICK_RATE: probability of picking omen
+PHOENIX_PICK_RATE: probability of picking phoenix
+RAZE_PICK_RAT: probability of picking raze
+REYNA_PICK_RATE: probability of picking reyna
+SAGE_PICK_RATE: probability of picking sage
+SKYE_PICK_RATE: probability of picking skye
+SOVA_PICK_RATE: probability of picking sova
+VIPER_PICK_RATE: probability of picking viper
+YORU_PICK_RATE: probability of picking yoru
+ISO_PICK_RATE: probability of picking iso
+CLOVE_PICK_RATE: probability of picking clove
+VYSE_PICK_RATE: probability of picking vyse
+DUELIST_PICK_RATE: probability of picking a duelist agent
+INITIATOR_PICK_RATE: probability of picking a initiator agent
+SENTINEL_PICK_RATE: probability of picking a sentinel agent
+CONTROLLER_PICK_RATE: probability of picking a controller agent
+
+Your job is to analyze this team's composition and speculate on if it would be a good team or not, giving reasons why as well as some strengths and weakensses of the team, and designate and in game leader
