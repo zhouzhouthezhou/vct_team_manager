@@ -41,7 +41,7 @@ source myenv/bin/activate
 pip install -r requirements.txt
 
 ## Usage
-Start app
+# Start app
 streamlit run app.py
 
 
