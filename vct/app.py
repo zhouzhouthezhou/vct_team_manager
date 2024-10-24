@@ -179,7 +179,7 @@ if prompt := st.chat_input():
                     output_text = response["output_text"]  
         except Exception as e:
             # Catching all exceptions and logging it to not break the user experience
-            output_text = "An error has occurred. Please try again."
+            output_text = "An error has occurred. Please try again." + str(e)
             logging.info(f"An error occurred: {e}")
             response = {"citations": [],"trace": []} 
 
