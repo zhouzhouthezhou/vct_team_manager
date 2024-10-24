@@ -3,4 +3,6 @@ AWS Glue - Data Ingestion and Processing
 S3 Buckets - Storage for VCT JSON data and processed parquets from glue
 AWS Bedrock - LLM Api Calls
 
+We used https://valorant-api.com/ to get data on maps and weapons
+
 For more technical details, see the section 3 of the full write up

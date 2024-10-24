@@ -22,6 +22,8 @@ The objective here is to find a way to combine well studied classical methods wi
 - Integrate with 1 Claude Haiku and 2 Claude Sonnet LLM Models as agents on AWS Bedrock for generating output.
 - Use Principal Component Analysis and Gaussian Mixture Model to identify key performance factors for each role and generate pdf based on the key factors.
 
+We used https://valorant-api.com/ to get data on maps and weapons
+
 ## Installation
 
 Step-by-step instructions on how to set up and run the project.
