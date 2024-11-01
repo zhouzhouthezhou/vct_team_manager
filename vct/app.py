@@ -1,9 +1,7 @@
 import json
-import os
 from services import bedrock_agent_runtime
 import streamlit as st
 import uuid
-import re
 import team_sampling
 import team_assignment
 from botocore.exceptions import EventStreamError
@@ -29,20 +27,25 @@ logging.basicConfig(level=logging.CRITICAL)
 
 # Prompts and values needed for our LLM prompts
 is_this_build_team_prompt = "Is this asking you to build a new VCT Valorant Team? Respond with only the word yes or no."
-is_this_multi_region_prompt = "Is this asking you to build a team with players from more than two different regions? Respond with only the word yes or no."
+is_this_multi_region_prompt = "Is this asking you to build a team with players from more than two different regions? If they do not specify, default to no. Respond with only the word yes or no."
 assign_roles_prompt = """ Respond to this with only a json object of the following format where the key is the player type and the value is the group. { "duelist": "vct-international", "sentinel": "vct-international", "controller": "vct-international", "initiator": "vct-international", "flex": "vct-international" }"""
 team_prompt = "I am going to give you a list of python dictionaries. Each dictionary will have 5 key-value pairings representing the 5 players of a Valorant team. The key will represent the player's name. The value will be a python list that is a Yeo-Johnson normalized statistical break down of that player from the 2024 season. From the below teams, select only the best team and return the index in the list where the team dictionary resides. In your response, only include the integer for the index of the best team. Do not include any English words."
-priming_prompt = "If you get asked to analyze of the players, use the statistics that I just sent. Explain initially that the statistics shown represent a a Yeo-Johnson normalized statistical break down from their VCT games. Compare the statistics of the asked player to others using metrics such as standard deviation. Do you return the exact normalized statistics for the player."
+subs_prompt_first = "Send the index of the second best team that does not share any players with the team at index "
+subs_prompt_second = ". Do not send any english words. Only send the index of the second best team. Do not send the same index as the first best team"
+is_this_followup_prompt = "Is this prompt asking a follow-up question to a valorant team? Follow up questions may include but are not limited to asking for what recent performances or statistics justify the inclusion of a player in the team, if a player is unavailable, who would be a suitable replacement and why, which maps would this team composition excel in and why, what player would take a leadership (IGL) role and why, and any role-specific (duelists, sentinels, controllers, initiators) metrics and justifications (how effective is a player in initiating fights and security entry kills). Respond with only the word yes or no"
+priming_prompt = "If you get asked what recent performances or statistics justify the inclusion of a certain player, which maps this team composition would excel in, which player would take a leadership (IGL) role, or any role specific metrics and justifications (duelists, sentinels, controllers, initiators), use the statistics that I initially sent in addition to the team that you generated. Explain first that the statistics shown represent a a Yeo-Johnson normalized statistical break down from their VCT games. Compare the statistics of the asked player to others using metrics such as standard deviation. Do you return the exact normalized statistics for the player. If you get asked if a player were unavailable, who would be a suitable replacement and why, select a proper player in the following team. The team will be a python dictionary like the one I sent previously. The dictionary will have 5 key-value pairings representing the 5 players of a Valorant team. The key represents the player name. The value is a python tuple. The first value in the list is a Yeo-Johnson normalized statistical break down of that player. Do not select a player as a suitable replacement as the player who is unavailable. Ensure that they names of the two players are unique."
 num_teams = 50
 max_retries = 3
 
-# Used to reset all of the various session fields
+# Used to reset all the various session fields
 def init_state():
     st.cache_data.clear()
     st.cache_resource.clear()
     st.session_state.session_id = None
     st.session_state.messages = []
     st.session_state.teams = []
+    st.session_state.subs_list = []
+    st.session_state.first_question = True
 
 # Call the specified LLM agent
 def call_llm(agent_id, agent_alias_id, session_id, prompt):
@@ -93,7 +96,7 @@ if prompt := st.chat_input():
     with st.chat_message("user"):
         st.write(prompt)
 
-    with st.chat_message("assistant"):
+    with (st.chat_message("assistant")):
         placeholder = st.empty()
         placeholder.markdown("...")
 
@@ -117,7 +120,7 @@ if prompt := st.chat_input():
                 response_multiple_regions = call_llm(agent_id_A, agent_alias_id_A, llm_a_session_id, prompt_multiple_regions)
                 yes_or_no_regions = response_multiple_regions["output_text"]
                 more_than_two_regions = "yes" in yes_or_no_regions.lower()
-                
+
                 bedrock_agent_runtime.end_session(client, agent_id_A, agent_alias_id_A, llm_a_session_id)
 
                 # Third call to LLM A is to determine which player type (duelist, sentinel, controller, initiator, flex) is going to be obtained from which VCT League (International, Challengers, Game Changers)
@@ -125,8 +128,10 @@ if prompt := st.chat_input():
                 if not st.session_state.session_id == None:
                     bedrock_agent_runtime.end_session(client, agent_id_TEAM, agent_alias_id_TEAM, st.session_state.session_id)
                 st.session_state.session_id = str(uuid.uuid4())
+                st.session_state.subs_list = []
+                st.session_state.first_question = True
 
-                # Retry until we get a JSON object from LLM A
+            # Retry until we get a JSON object from LLM A
                 retry = 0
                 while "{" not in output_text and "}" not in output_text or retry >= max_retries:
                     llm_a_session_id = str(uuid.uuid4()) # We want this to be a new session every time
@@ -136,7 +141,7 @@ if prompt := st.chat_input():
                     output_text = response_build_new_team["output_text"]
                     logging.info("2) LLM A output:" + output_text)
                     retry += 1
-                
+
                 bedrock_agent_runtime.end_session(client, agent_id_A, agent_alias_id_A, llm_a_session_id)
 
                 # Remove everything before the { and after the }
@@ -153,13 +158,13 @@ if prompt := st.chat_input():
 
                 # First call to LLM T to determine which of the num_teams generated team is the best
                 # Retry until we get a response with a proper index
-                team_index = -1
+                team_index = None
                 retry = 0
-                while 0 <= team_index < len(num_teams) or retry >= max_retries:
+                llm_t_session_id = ""
+                while (team_index is None or (team_index is not None and (team_index < 0 or team_index >= num_teams)) and retry <= max_retries):
                     build_team_prompt = team_prompt + "\n" + json.dumps(list_teams)
                     llm_t_session_id = str(uuid.uuid4()) # We want this to be a new session every time
                     response = call_llm(agent_id_T, agent_alias_id_T, llm_t_session_id, build_team_prompt)
-                    bedrock_agent_runtime.end_session(client, agent_id_T, agent_alias_id_T, llm_t_session_id)
                     logging.info("3) LLM T output: " + response["output_text"])
                     try:
                         team_index = int(''.join(filter(str.isdigit, response["output_text"])))
@@ -167,28 +172,63 @@ if prompt := st.chat_input():
                         logging.info(f"Did not get a valid index from LLM T, retrying")
                     retry += 1
 
+                # Retry until we get a response with a proper index
+                subs_index = None
+                retry = 0
+                while (subs_index is None or (subs_index is not None and (subs_index < 0 or subs_index >= num_teams)) and retry <= max_retries):
+                    build_subs_prompt = subs_prompt_first + str(team_index) + subs_prompt_second + "\n" + json.dumps(list_teams)
+                    response = call_llm(agent_id_T, agent_alias_id_T, llm_t_session_id, build_subs_prompt)
+                    logging.info("3.5) LLM T output: " + response["output_text"])
+                    try:
+                        subs_index = int(''.join(filter(str.isdigit, response["output_text"])))
+                    except (ValueError, KeyError, TypeError) as e:
+                        logging.info(f"Did not get a valid index from LLM T, retrying")
+                    retry += 1
+
+                bedrock_agent_runtime.end_session(client, agent_id_T, agent_alias_id_T, llm_t_session_id)
+                subs = list_teams[subs_index]
+                st.session_state.subs_list = json.dumps(subs)
+
                 # First call to LLM Team to analyze the selected team and give an explanation on why it would perform well
                 team = list_teams[team_index]
                 st.session_state.teams.append(team.keys()) # Add the player names to display in the side bar
                 team_list_str = json.dumps(team)
                 response = call_llm(agent_id_TEAM, agent_alias_id_TEAM, st.session_state.session_id, team_list_str)
                 output_text = response["output_text"]
-                logging.info("4) LLM TEAM output:" + output_text)  
+                logging.info("4) LLM TEAM output:" + output_text)
             else:
                 if st.session_state.session_id == None:
                     # If there is no session_id then a team has not been selected and the LLM cannot answer any VCT related questions without a team built
                     output_text = "Please ask to build a VCT Team before asking any other questions."
-                    response = {"citations": [],"trace": []} 
                 else:
-                    # Follow up call to LLM Team to prime it to be prepared to answer follow up questions on any of the players in the team chosen
-                    call_llm(agent_id_TEAM, agent_alias_id_TEAM, st.session_state.session_id, priming_prompt)
-                    logging.info("5) LLM TEAM priming call complete")  
+                    # Call to LLM A, asking if the request is a valid follow up question or not
+                    prompt_is_follow_up = "\"" + prompt + "\" " + is_this_followup_prompt
 
-                    # Call to LLM Team to ask follow up questions regarding a team that was build
-                    response = call_llm(agent_id_TEAM, agent_alias_id_TEAM, st.session_state.session_id, prompt)
+                    llm_a_session_id = str(uuid.uuid4()) # We want this to be a new session every time
+                    response_build_new_team = call_llm(agent_id_A, agent_alias_id_A, llm_a_session_id, prompt_is_follow_up)
+                    yes_or_no = response_build_new_team["output_text"]
 
-                    logging.info("6) LLM Team output: " +  response["output_text"])
-                    output_text = response["output_text"]  
+                    output_text = ""
+                    bedrock_agent_runtime.end_session(client, agent_id_A, agent_alias_id_A, llm_a_session_id)
+
+                    logging.info("1) LLM A output: " + yes_or_no)
+                    if "yes" in yes_or_no.lower():
+                        if st.session_state.first_question:
+                            # Follow up call to LLM Team to prime it to be prepared to answer follow up questions on any of the players in the team chosen
+                            priming_prompt_with_subs = priming_prompt + "\n" + st.session_state.subs_list
+                            logging.info("Priming call: ", priming_prompt_with_subs)
+                            call_llm(agent_id_TEAM, agent_alias_id_TEAM, st.session_state.session_id, priming_prompt)
+                            logging.info("5) LLM TEAM priming call complete")
+
+                        # Call to LLM Team to ask follow up questions regarding a team that was build
+                        response = call_llm(agent_id_TEAM, agent_alias_id_TEAM, st.session_state.session_id, prompt)
+
+                        logging.info("6) LLM Team output: " +  response["output_text"])
+                        output_text = response["output_text"]
+                        st.session_state.first_question = False
+                    else:
+                        # If this is not a follow up question on a team the LLM cannot answer
+                        output_text = "Please only ask questions regarding a VCT Team that was previously built."
         except Exception as e:
             # Catching all exceptions and logging it to not break the user experience
             output_text = "An error has occurred. Please try again."
