@@ -1,72 +1,65 @@
-AFFINITY_ABYSS: a players affinity for the abyss map
-AFFINITY_ASCENT: a players affinity for the ascent map
-AFFINITY_BIND: a players affinity for the bind map
-AFFINITY_BREEZE: a players affinity for the breeze map
-AFFINITY_FRACTURE: a players affinity for the fracture map
-AFFINITY_HAVEN: a players affinity for the haven map
-AFFINITY_ICEBOX: a players affinity for the icebox map
-AFFINITY_LOTUS: a players affinity for the lotus map
-AFFINITY_PEARL: a players affinity for the pearl map
-AFFINITY_SPLIT: a players affinity for the split map
-AFFINITY_SUNSET: a players affinity for the sunset map
-ROUND_NUMBER: average number of rounds in a game with this player
-OUTCOME: a players tendancy to win or lose
-SIDE: if a player tends to play on one side more than the other
-KILLS: average number of kills per round
-DEATHS: average number of deaths per round
-ASSISTS: average number of assists per round
-COMBAT_SCORE: average combat score per round
-KILLS_STINGER: average number of stinger kills per round
-KILLS_BUCKY: average number of bucky kills per round
-KILLS_JUDGE: average number of judge kills per round
-KILLS_SPECTRE: average number of spectre kills per round
-KILLS_BULLDOG: average number of bulldog kills per round
-KILLS_GUARDIAN: average number of gaurdian kills per round
-KILLS_PHANTOM: average number of phantom kills per round
-KILLS_VANDAL: average number of vandal kills per round
-KILLS_MARSHAL: average number of marshal kills per round
-KILLS_OUTLAW: average nubmer of outlaw kills per round
-KILLS_OPERATOR: average number of operator kills per round
-KILLS_ARES: average number of ares kills per round
-KILLS_ODIN: average number of odin kills per round
-KILLS_CLASSIC: average number of classic kills per round
-KILLS_SHORTY: average number of shorty kills per round
-KILLS_FRENZY: average number of frenzy kills per round
-KILLS_GHOST: average number of ghost kills per round
-KILLS_SHERIFF: average number of sheriff kills per round
-KILLS_MELEE: average number of melee kills per round
-TIME_ALIVE: average time spend alive per round
-DEAD: probability of dying in any given round
-DAMAGE_TAKEN: average damage taken per round
-DAMAGE_DONE: average damage done per round
-SPIKE_CARRY_PERCENT: average percent of round spend carrying the spike
-SPIKE_PLANT: probabililty of planting the spike in a round
-ASTRA_PICK_RATE: probability of picking astra
-BREACH_PICK_RATE: probability of picking breach
-BRIMSTONE_PICK_RATE: probability of picking brimstone
-CHAMBER_PICK_RATE: probability of picking chamber
-CYPHER_PICK_RATE: probability of picking cypher
-DEADLOCK_PICK_RATE: probability of picking deadlock
-FADE_PICK_RATE: probability of picking fade
-GEKKO_PICK_RATE: probability of picking gekko
-HARBOR_PICK_RATE: probability of picking harbor
-JETT_PICK_RATE: probability of picking jett
-KAYO_PICK_RATE: probability of picking kayo
-KILLJOY_PICK_RATE: probability of picking killjoy
-NEON_PICK_RATE: probability of picking neon
-OMEN_PICK_RATE: probability of picking omen
-PHOENIX_PICK_RATE: probability of picking phoenix
-RAZE_PICK_RAT: probability of picking raze
-REYNA_PICK_RATE: probability of picking reyna
-SAGE_PICK_RATE: probability of picking sage
-SKYE_PICK_RATE: probability of picking skye
-SOVA_PICK_RATE: probability of picking sova
-VIPER_PICK_RATE: probability of picking viper
-YORU_PICK_RATE: probability of picking yoru
-ISO_PICK_RATE: probability of picking iso
-CLOVE_PICK_RATE: probability of picking clove
-VYSE_PICK_RATE: probability of picking vyse
-DUELIST_PICK_RATE: probability of picking a duelist agent
-INITIATOR_PICK_RATE: probability of picking a initiator agent
-SENTINEL_PICK_RATE: probability of picking a sentinel agent
-CONTROLLER_PICK_RATE: probability of picking a controller agent
+AFFINITY_ABYSS: affinity for abyss map
+AFFINITY_ASCENT: affinity for ascent map
+AFFINITY_BIND: affinity for bind map
+AFFINITY_BREEZE: affinity for breeze map
+AFFINITY_FRACTURE: affinity for fracture map
+AFFINITY_HAVEN: affinity for haven map
+AFFINITY_ICEBOX: affinity for icebox map
+AFFINITY_LOTUS: affinity for lotus map
+AFFINITY_PEARL: affinity for pearl map
+AFFINITY_SPLIT: affinity for split map
+AFFINITY_SUNSET: affinity for sunset map
+ASSISTS: Average assists per round
+ASTRA_PICK_RATE: Percent rounds as Astra
+BREACH_PICK_RATE: Percent rounds as Breach
+BRIMSTONE_PICK_RATE: Percent rounds as Brimstone
+CHAMBER_PICK_RATE: Percent rounds as Chamber
+CLOVE_PICK_RATE: Percent rounds as Clove
+CYPHER_PICK_RATE: Percent rounds as Cypher
+DAMAGE_DONE: Average damage done per round
+DAMAGE_TAKEN: Average damage taken per round
+DEAD: Likelyhood of dying in a round
+DEADLOCK_PICK_RATE: Percent rounds as Deadlock
+DEATHS: Average deaths per round
+FADE_PICK_RATE: Percent rounds as Fade
+GEKKO_PICK_RATE: Percent rounds as Gekko
+HARBOR_PICK_RATE: Percent rounds as Harbor
+ISO_PICK_RATE: Percent rounds as Iso
+JETT_PICK_RATE: Percent rounds as Jett
+KAYO_PICK_RATE: Percent rounds as Kayo
+KILLJOY_PICK_RATE: Percent rounds as Killjoy
+KILLS_ARES: Likelyhood of getting kills with an Ares
+KILLS_BUCKY: Likelyhood of getting kills with a Bucky
+KILLS_BULLDOG: Likelyhood of getting kills with a Bulldog
+KILLS_CLASSIC: Likelyhood of getting kills with a Classic
+KILLS_FRENZY: Likelyhood of getting kills with a Frenzy
+KILLS_GHOST: Likelyhood of getting kills with a Ghost
+KILLS_GUARDIAN: Likelyhood of getting kills with a Gaurdian
+KILLS_JUDGE: Likelyhood of getting kills with a Judge
+KILLS_MARSHAL: Likelyhood of getting kills with a Marshal
+KILLS_MELEE: Likelyhood of getting kills with a Knife
+KILLS_ODIN: Likelyhood of getting kills with an Odin
+KILLS_OPERATOR: Likelyhood of getting kills with an Operator
+KILLS_OUTLAW: Likelyhood of getting kills with an Outlaw
+KILLS_PHANTOM: Likelyhood of getting kills with a Phantom
+KILLS_SHERIFF: Likelyhood of getting kills with a Sheriff
+KILLS_SHORTY: Likelyhood of getting kills with a Shorty
+KILLS_SPECTRE: Likelyhood of getting kills with a Spectre
+KILLS_STINGER: Likelyhood of getting kills with a Stinger
+KILLS_VANDAL: Likelyhood of getting kills with a Vandal
+NEON_PICK_RATE: Percent rounds as Neon
+OMEN_PICK_RATE: Percent rounds as Omen
+PHOENIX_PICK_RATE: Percent rounds as Phoenix
+RAZE_PICK_RATE: Percent rounds as Raze
+REYNA_PICK_RATE: Percent rounds as Reyna
+ROUND_NUMBER: most rounds played
+SAGE_PICK_RATE: Percent rounds as Sage
+SIDE: Tendancy towards attack(positive)/defence(negative)
+SKYE_PICK_RATE: Percent rounds as Skye
+SOVA_PICK_RATE: Percent rounds as Sova
+SPIKE_CARRY_PERCENT: Average duration of carrying spike
+SPIKE_PLANT: Likelyhood to plant spike
+TIME_ALIVE: Average time alive
+VIPER_PICK_RATE: Percent rounds as Viper
+VYSE_PICK_RATE: Percent rounds as Vyse
+YORU_PICK_RATE: Percent rounds as Yoru
