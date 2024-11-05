@@ -9,9 +9,10 @@ import time
 import random
 import boto3
 import logging
-import os
+from pathlib import Path
 
-image_dir = 'images'
+image_dir = Path(__file__).parent / "images"
+print(str(image_dir))
 
 # Agent IDs and Agent Alias IDs to access LLMs
 agent_id_A = st.secrets["agent_id_A"]
@@ -241,7 +242,7 @@ if prompt := st.chat_input():
         st.session_state.messages.append({"role": "assistant", "content": output_text})
 
 
-role_images = ['images/duelist-valorant.png','images/sentinel-valorant.png','images/initiator-valorant.png','images/controller-valorant.png','images/flex-valorant.png',]
+role_images = ['duelist-valorant.png','sentinel-valorant.png','initiator-valorant.png','controller-valorant.png','flex-valorant.png',]
 # Sidebar section for trace
 with st.sidebar:
     # Displaying all generated teams and their members in the side bar
@@ -254,7 +255,7 @@ with st.sidebar:
                 for i in range(len(role_images)):
                     col1, col2 = st.columns([1, 6])  # [1, 4] sets the relative widths of the columns
                     with col1:
-                        ipath = os.path.join(image_dir, role_images[i])
+                        ipath = str(image_dir / role_images[i])
                         st.image(ipath, width=25)
                     with col2:
                         st.markdown(team[i])
