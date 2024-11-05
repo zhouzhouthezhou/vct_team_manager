@@ -3,3 +3,4 @@ data/game-changers/*-df.pkl
 data/vct-challengers/*-df.pkl
 data/vct-international/*-df.pkl
 vct/.streamlit/secrets.toml
+venv
