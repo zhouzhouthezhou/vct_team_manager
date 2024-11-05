@@ -258,4 +258,4 @@ with st.sidebar:
                         ipath = str(image_dir / role_images[i])
                         st.image(ipath, width=25)
                     with col2:
-                        st.markdown(str(team))
+                        st.markdown(list(team)[i])
