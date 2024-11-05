@@ -11,6 +11,7 @@ import boto3
 import logging
 from pathlib import Path
 import base64
+from PIL import Image
 
 image_dir = Path(__file__).parent / "images"
 print(str(image_dir))
@@ -142,16 +143,23 @@ with st.sidebar:
 
 # Messages in the conversation
 for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"], unsafe_allow_html=True)
-
+    if message['role'] == 'user':
+        with st.chat_message(message["role"], avatar=str(
+                image_dir)+'/jett.png'):
+            st.markdown(message["content"], unsafe_allow_html=True)
+    else:
+        with st.chat_message(message["role"], avatar=str(
+                image_dir)+'/jett.png'):
+            st.markdown(message["content"], unsafe_allow_html=True)
 # Chat input that invokes the agent
 if prompt := st.chat_input():
     st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
+    with st.chat_message("user", avatar=str(
+            image_dir)+'/jett.png'):
         st.write(prompt)
 
-    with (st.chat_message("assistant")):
+    with (st.chat_message("assistant", avatar=str(
+            image_dir)+'/kj.png')):
         placeholder = st.empty()
         placeholder.markdown("...")
 
@@ -324,6 +332,7 @@ if prompt := st.chat_input():
             logging.info(f"An error occurred: {e}")
 
         placeholder.markdown(output_text, unsafe_allow_html=True)
+
         st.session_state.messages.append(
             {"role": "assistant", "content": output_text})
 
