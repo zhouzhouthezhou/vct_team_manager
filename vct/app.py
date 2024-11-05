@@ -149,7 +149,7 @@ for message in st.session_state.messages:
             st.markdown(message["content"], unsafe_allow_html=True)
     else:
         with st.chat_message(message["role"], avatar=str(
-                image_dir)+'/jett.png'):
+                image_dir)+'/kj.png'):
             st.markdown(message["content"], unsafe_allow_html=True)
 # Chat input that invokes the agent
 if prompt := st.chat_input():
