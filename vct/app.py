@@ -10,6 +10,7 @@ import random
 import boto3
 import logging
 from pathlib import Path
+import base64
 
 image_dir = Path(__file__).parent / "images"
 print(str(image_dir))
@@ -24,7 +25,8 @@ agent_alias_id_TEAM = st.secrets["agent_alias_id_TEAM"]
 ui_title = 'VCT Team Manager'
 
 # boto3 client to call bedrock agents
-client = boto3.session.Session(region_name=st.secrets["AWS_DEFAULT_REGION"], aws_access_key_id=st.secrets["AWS_ACCESS_KEY_ID"], aws_secret_access_key=st.secrets["AWS_SECRET_ACCESS_KEY"]).client(service_name="bedrock-agent-runtime")
+client = boto3.session.Session(region_name=st.secrets["AWS_DEFAULT_REGION"], aws_access_key_id=st.secrets["AWS_ACCESS_KEY_ID"],
+                               aws_secret_access_key=st.secrets["AWS_SECRET_ACCESS_KEY"]).client(service_name="bedrock-agent-runtime")
 
 # Logging config
 logging.basicConfig(level=logging.CRITICAL)
@@ -42,6 +44,8 @@ num_teams = 50
 max_retries = 3
 
 # Used to reset all the various session fields
+
+
 def init_state():
     st.cache_data.clear()
     st.cache_resource.clear()
@@ -52,6 +56,8 @@ def init_state():
     st.session_state.first_question = True
 
 # Call the specified LLM agent
+
+
 def call_llm(agent_id, agent_alias_id, session_id, prompt):
     retries = 0
     max_retries = 10
@@ -70,17 +76,60 @@ def call_llm(agent_id, agent_alias_id, session_id, prompt):
             retries += 1
             sleep_time = (2 ** retries) + random.uniform(0, 1)
             handle_throttle(round(sleep_time))
-    
+
 # Prints out to Front End messages for handling throttling exception
+
+
 def handle_throttle(sleep_time):
     for seconds in range(sleep_time):
-        placeholder.write(f"⏳ Throttling error, retrying in {sleep_time - seconds} seconds...")
+        placeholder.write(
+            f"⏳ Throttling error, retrying in {sleep_time - seconds} seconds...")
         time.sleep(1)
     placeholder.write("Retrying...")
 
+# customize loading icon
+
+
+def custom_css():
+    base64_image = None
+    # Read the image file and convert it to Base64
+    with open("./valorant.png", "rb") as image_file:
+        base64_image = base64.b64encode(image_file.read()).decode("utf-8")
+    # CSS for custom loading icon
+    loading_icon_css = f"""
+    <style>
+    /* Target the entire loading component */
+
+
+    /* Hide the default Streamlit loading icon and text */
+    #root > div:nth-child(1) > div.withScreencast > div > div > header > div.stAppToolbar.st-emotion-cache-15ecox0.ezrtsby0 > div.stStatusWidget.st-emotion-cache-19or5k2.en6cib61.StatusWidget-enter-done > div > img{{
+        display:none
+    }}
+    [data-testid="stStatusWidget"] svg, [data-testid="stStatusWidget"] > div > span {{
+    display: none;
+    }}
+    [data-testid="stStatusWidget"] > div {{
+    background-image: url("data:image/png;base64,{base64_image}");
+    background-size: contain;
+    background-repeat: no-repeat;
+    height: 50px;
+    width: 50px;
+    animation: spin 1s linear infinite;
+    }}
+    @keyframes spin {{
+    0% {{ transform: rotate(0deg); }}
+    100% {{ transform: rotate(360deg); }}
+    }}
+    </style>
+    """
+    st.markdown(loading_icon_css, unsafe_allow_html=True)
+
+
 # General page configuration and initialization
-st.set_page_config(page_title=ui_title, page_icon="https://cdn-icons-png.flaticon.com/512/4783/4783491.png", layout="wide")
+st.set_page_config(page_title=ui_title,
+                   page_icon="https://cdn-icons-png.flaticon.com/512/4783/4783491.png", layout="wide")
 st.title(ui_title)
+custom_css()
 if len(st.session_state.items()) == 0:
     init_state()
 
@@ -88,6 +137,7 @@ if len(st.session_state.items()) == 0:
 with st.sidebar:
     if st.button("Reset Session"):
         init_state()
+
 
 # Messages in the conversation
 for message in st.session_state.messages:
@@ -107,12 +157,15 @@ if prompt := st.chat_input():
         # First call to LLM A, asking if the request is asking to build a new VCT Team or not
         prompt_is_req_build_team = "\"" + prompt + "\" " + is_this_build_team_prompt
 
-        llm_a_session_id = str(uuid.uuid4()) # We want this to be a new session every time
-        response_build_new_team = call_llm(agent_id_A, agent_alias_id_A, llm_a_session_id, prompt_is_req_build_team)
+        # We want this to be a new session every time
+        llm_a_session_id = str(uuid.uuid4())
+        response_build_new_team = call_llm(
+            agent_id_A, agent_alias_id_A, llm_a_session_id, prompt_is_req_build_team)
         yes_or_no = response_build_new_team["output_text"]
 
         output_text = ""
-        bedrock_agent_runtime.end_session(client, agent_id_A, agent_alias_id_A, llm_a_session_id)
+        bedrock_agent_runtime.end_session(
+            client, agent_id_A, agent_alias_id_A, llm_a_session_id)
 
         logging.info("1) LLM A output: " + yes_or_no)
         try:
@@ -120,17 +173,21 @@ if prompt := st.chat_input():
                 # Second call to LLM A, asking if the request is asking if this is asking for a multi-region team or not
                 prompt_multiple_regions = "\"" + prompt + "\" " + is_this_multi_region_prompt
 
-                llm_a_session_id = str(uuid.uuid4()) # We want this to be a new session every time
-                response_multiple_regions = call_llm(agent_id_A, agent_alias_id_A, llm_a_session_id, prompt_multiple_regions)
+                # We want this to be a new session every time
+                llm_a_session_id = str(uuid.uuid4())
+                response_multiple_regions = call_llm(
+                    agent_id_A, agent_alias_id_A, llm_a_session_id, prompt_multiple_regions)
                 yes_or_no_regions = response_multiple_regions["output_text"]
                 more_than_two_regions = "yes" in yes_or_no_regions.lower()
 
-                bedrock_agent_runtime.end_session(client, agent_id_A, agent_alias_id_A, llm_a_session_id)
+                bedrock_agent_runtime.end_session(
+                    client, agent_id_A, agent_alias_id_A, llm_a_session_id)
 
                 # Third call to LLM A is to determine which player type (duelist, sentinel, controller, initiator, flex) is going to be obtained from which VCT League (International, Challengers, Game Changers)
                 # Reset LLM T to not have any context of any previous teams.
                 if not st.session_state.session_id == None:
-                    bedrock_agent_runtime.end_session(client, agent_id_TEAM, agent_alias_id_TEAM, st.session_state.session_id)
+                    bedrock_agent_runtime.end_session(
+                        client, agent_id_TEAM, agent_alias_id_TEAM, st.session_state.session_id)
                 st.session_state.session_id = str(uuid.uuid4())
                 st.session_state.subs_list = []
                 st.session_state.first_question = True
@@ -138,27 +195,33 @@ if prompt := st.chat_input():
             # Retry until we get a JSON object from LLM A
                 retry = 0
                 while "{" not in output_text and "}" not in output_text or retry >= max_retries:
-                    llm_a_session_id = str(uuid.uuid4()) # We want this to be a new session every time
+                    # We want this to be a new session every time
+                    llm_a_session_id = str(uuid.uuid4())
                     prompt_json = prompt + assign_roles_prompt
 
-                    response_build_new_team = call_llm(agent_id_A, agent_alias_id_A, llm_a_session_id, prompt_json)
+                    response_build_new_team = call_llm(
+                        agent_id_A, agent_alias_id_A, llm_a_session_id, prompt_json)
                     output_text = response_build_new_team["output_text"]
                     logging.info("2) LLM A output:" + output_text)
                     retry += 1
 
-                bedrock_agent_runtime.end_session(client, agent_id_A, agent_alias_id_A, llm_a_session_id)
+                bedrock_agent_runtime.end_session(
+                    client, agent_id_A, agent_alias_id_A, llm_a_session_id)
 
                 # Remove everything before the { and after the }
-                response_only_json = json.loads(output_text[output_text.find("{"):output_text.rfind("}") + 1])
+                response_only_json = json.loads(
+                    output_text[output_text.find("{"):output_text.rfind("}") + 1])
 
                 # Call team_sampling to get the list of teams we need
                 team_generator = team_sampling.Team_Generator()
 
                 # Add the regions list
-                regions_list = team_assignment.assign_regions(response_only_json, more_than_two_regions)
+                regions_list = team_assignment.assign_regions(
+                    response_only_json, more_than_two_regions)
                 response_only_json["region"] = regions_list
 
-                list_teams = team_generator.generate_teams(num_teams, response_only_json)
+                list_teams = team_generator.generate_teams(
+                    num_teams, response_only_json)
 
                 # First call to LLM T to determine which of the num_teams generated team is the best
                 # Retry until we get a response with a proper index
@@ -166,38 +229,52 @@ if prompt := st.chat_input():
                 retry = 0
                 llm_t_session_id = ""
                 while (team_index is None or (team_index is not None and (team_index < 0 or team_index >= num_teams)) and retry <= max_retries):
-                    build_team_prompt = team_prompt + "\n" + json.dumps(list_teams)
-                    llm_t_session_id = str(uuid.uuid4()) # We want this to be a new session every time
-                    response = call_llm(agent_id_T, agent_alias_id_T, llm_t_session_id, build_team_prompt)
+                    build_team_prompt = team_prompt + \
+                        "\n" + json.dumps(list_teams)
+                    # We want this to be a new session every time
+                    llm_t_session_id = str(uuid.uuid4())
+                    response = call_llm(
+                        agent_id_T, agent_alias_id_T, llm_t_session_id, build_team_prompt)
                     logging.info("3) LLM T output: " + response["output_text"])
                     try:
-                        team_index = int(''.join(filter(str.isdigit, response["output_text"])))
+                        team_index = int(
+                            ''.join(filter(str.isdigit, response["output_text"])))
                     except (ValueError, KeyError, TypeError) as e:
-                        logging.info(f"Did not get a valid index from LLM T, retrying")
+                        logging.info(
+                            f"Did not get a valid index from LLM T, retrying")
                     retry += 1
 
                 # Retry until we get a response with a proper index
                 subs_index = None
                 retry = 0
                 while (subs_index is None or (subs_index is not None and (subs_index < 0 or subs_index >= num_teams)) and retry <= max_retries):
-                    build_subs_prompt = subs_prompt_first + str(team_index) + subs_prompt_second + "\n" + json.dumps(list_teams)
-                    response = call_llm(agent_id_T, agent_alias_id_T, llm_t_session_id, build_subs_prompt)
-                    logging.info("3.5) LLM T output: " + response["output_text"])
+                    build_subs_prompt = subs_prompt_first + \
+                        str(team_index) + subs_prompt_second + \
+                        "\n" + json.dumps(list_teams)
+                    response = call_llm(
+                        agent_id_T, agent_alias_id_T, llm_t_session_id, build_subs_prompt)
+                    logging.info("3.5) LLM T output: " +
+                                 response["output_text"])
                     try:
-                        subs_index = int(''.join(filter(str.isdigit, response["output_text"])))
+                        subs_index = int(
+                            ''.join(filter(str.isdigit, response["output_text"])))
                     except (ValueError, KeyError, TypeError) as e:
-                        logging.info(f"Did not get a valid index from LLM T, retrying")
+                        logging.info(
+                            f"Did not get a valid index from LLM T, retrying")
                     retry += 1
 
-                bedrock_agent_runtime.end_session(client, agent_id_T, agent_alias_id_T, llm_t_session_id)
+                bedrock_agent_runtime.end_session(
+                    client, agent_id_T, agent_alias_id_T, llm_t_session_id)
                 subs = list_teams[subs_index]
                 st.session_state.subs_list = json.dumps(subs)
 
                 # First call to LLM Team to analyze the selected team and give an explanation on why it would perform well
                 team = list_teams[team_index]
-                st.session_state.teams.append(team.keys()) # Add the player names to display in the side bar
+                # Add the player names to display in the side bar
+                st.session_state.teams.append(team.keys())
                 team_list_str = json.dumps(team)
-                response = call_llm(agent_id_TEAM, agent_alias_id_TEAM, st.session_state.session_id, team_list_str)
+                response = call_llm(
+                    agent_id_TEAM, agent_alias_id_TEAM, st.session_state.session_id, team_list_str)
                 output_text = response["output_text"]
                 logging.info("4) LLM TEAM output:" + output_text)
             else:
@@ -208,26 +285,33 @@ if prompt := st.chat_input():
                     # Call to LLM A, asking if the request is a valid follow up question or not
                     prompt_is_follow_up = "\"" + prompt + "\" " + is_this_followup_prompt
 
-                    llm_a_session_id = str(uuid.uuid4()) # We want this to be a new session every time
-                    response_build_new_team = call_llm(agent_id_A, agent_alias_id_A, llm_a_session_id, prompt_is_follow_up)
+                    # We want this to be a new session every time
+                    llm_a_session_id = str(uuid.uuid4())
+                    response_build_new_team = call_llm(
+                        agent_id_A, agent_alias_id_A, llm_a_session_id, prompt_is_follow_up)
                     yes_or_no = response_build_new_team["output_text"]
 
                     output_text = ""
-                    bedrock_agent_runtime.end_session(client, agent_id_A, agent_alias_id_A, llm_a_session_id)
+                    bedrock_agent_runtime.end_session(
+                        client, agent_id_A, agent_alias_id_A, llm_a_session_id)
 
                     logging.info("1) LLM A output: " + yes_or_no)
                     if "yes" in yes_or_no.lower():
                         if st.session_state.first_question:
                             # Follow up call to LLM Team to prime it to be prepared to answer follow up questions on any of the players in the team chosen
                             priming_prompt_with_subs = priming_prompt + "\n" + st.session_state.subs_list
-                            logging.info("Priming call: ", priming_prompt_with_subs)
-                            call_llm(agent_id_TEAM, agent_alias_id_TEAM, st.session_state.session_id, priming_prompt)
+                            logging.info("Priming call: ",
+                                         priming_prompt_with_subs)
+                            call_llm(agent_id_TEAM, agent_alias_id_TEAM,
+                                     st.session_state.session_id, priming_prompt)
                             logging.info("5) LLM TEAM priming call complete")
 
                         # Call to LLM Team to ask follow up questions regarding a team that was build
-                        response = call_llm(agent_id_TEAM, agent_alias_id_TEAM, st.session_state.session_id, prompt)
+                        response = call_llm(
+                            agent_id_TEAM, agent_alias_id_TEAM, st.session_state.session_id, prompt)
 
-                        logging.info("6) LLM Team output: " +  response["output_text"])
+                        logging.info("6) LLM Team output: " +
+                                     response["output_text"])
                         output_text = response["output_text"]
                         st.session_state.first_question = False
                     else:
@@ -239,10 +323,12 @@ if prompt := st.chat_input():
             logging.info(f"An error occurred: {e}")
 
         placeholder.markdown(output_text, unsafe_allow_html=True)
-        st.session_state.messages.append({"role": "assistant", "content": output_text})
+        st.session_state.messages.append(
+            {"role": "assistant", "content": output_text})
 
 
-role_images = ['duelist-valorant.png','sentinel-valorant.png','controller-valorant.png','initiator-valorant.png','flex-valorant.png',]
+role_images = ['duelist-valorant.png', 'sentinel-valorant.png',
+               'controller-valorant.png', 'initiator-valorant.png', 'flex-valorant.png',]
 # Sidebar section for trace
 with st.sidebar:
     # Displaying all generated teams and their members in the side bar
@@ -253,7 +339,8 @@ with st.sidebar:
 
             with st.expander(f"Team Members", expanded=False):
                 for i in range(len(role_images)):
-                    col1, col2 = st.columns([1, 6])  # [1, 4] sets the relative widths of the columns
+                    # [1, 4] sets the relative widths of the columns
+                    col1, col2 = st.columns([1, 6])
                     with col1:
                         ipath = str(image_dir / role_images[i])
                         st.image(ipath, width=25)
