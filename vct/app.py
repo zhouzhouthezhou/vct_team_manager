@@ -237,6 +237,8 @@ if prompt := st.chat_input():
         placeholder.markdown(output_text, unsafe_allow_html=True)
         st.session_state.messages.append({"role": "assistant", "content": output_text})
 
+
+role_images = ['images/duelist-valorant.png','images/sentinel-valorant.png','images/initiator-valorant.png','images/controller-valorant.png','images/flex-valorant.png',]
 # Sidebar section for trace
 with st.sidebar:
     # Displaying all generated teams and their members in the side bar
@@ -246,5 +248,10 @@ with st.sidebar:
         for team in st.session_state.teams:
             st.subheader("Team " + str(team_num))
             with st.expander(f"Team Members", expanded=False):
-                st.markdown(', '.join(map(str, team)))
+                for i in range(len(role_images)):
+                    col1, col2 = st.columns([1, 6])  # [1, 4] sets the relative widths of the columns
+                    with col1:
+                        st.image(role_images[i], width=25)
+                    with col2:
+                        st.markdown(team[i])
             team_num += 1
