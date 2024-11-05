@@ -9,6 +9,9 @@ import time
 import random
 import boto3
 import logging
+import os
+
+image_dir = 'images'
 
 # Agent IDs and Agent Alias IDs to access LLMs
 agent_id_A = st.secrets["agent_id_A"]
@@ -251,7 +254,8 @@ with st.sidebar:
                 for i in range(len(role_images)):
                     col1, col2 = st.columns([1, 6])  # [1, 4] sets the relative widths of the columns
                     with col1:
-                        st.image(role_images[i], width=25)
+                        ipath = os.path.join(image_dir, role_images[i])
+                        st.image(ipath, width=25)
                     with col2:
                         st.markdown(team[i])
             team_num += 1
