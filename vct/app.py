@@ -242,7 +242,7 @@ if prompt := st.chat_input():
         st.session_state.messages.append({"role": "assistant", "content": output_text})
 
 
-role_images = ['duelist-valorant.png','sentinel-valorant.png','initiator-valorant.png','controller-valorant.png','flex-valorant.png',]
+role_images = ['duelist-valorant.png','sentinel-valorant.png','controller-valorant.png','initiator-valorant.png','flex-valorant.png',]
 # Sidebar section for trace
 with st.sidebar:
     # Displaying all generated teams and their members in the side bar
