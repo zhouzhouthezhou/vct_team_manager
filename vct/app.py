@@ -248,9 +248,9 @@ with st.sidebar:
     # Displaying all generated teams and their members in the side bar
     st.title("Generated Teams")
     if len(st.session_state.teams) > 0:
-        team_num = 1
-        for team in st.session_state.teams:
-            st.subheader("Team " + str(team_num))
+        for team_num, team in enumerate(st.session_state.teams):
+            st.subheader("Team " + str(team_num+1))
+
             with st.expander(f"Team Members", expanded=False):
                 for i in range(len(role_images)):
                     col1, col2 = st.columns([1, 6])  # [1, 4] sets the relative widths of the columns
@@ -258,5 +258,4 @@ with st.sidebar:
                         ipath = str(image_dir / role_images[i])
                         st.image(ipath, width=25)
                     with col2:
-                        st.markdown(team[i])
-            team_num += 1
+                        st.markdown(team[team_num][i])
