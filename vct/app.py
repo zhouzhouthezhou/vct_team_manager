@@ -93,7 +93,8 @@ def handle_throttle(sleep_time):
 def custom_css():
     base64_image = None
     # Read the image file and convert it to Base64
-    with open("./valorant.png", "rb") as image_file:
+    valorant_img_path = str(image_dir) + '/valorant.png'
+    with open(valorant_img_path, "rb") as image_file:
         base64_image = base64.b64encode(image_file.read()).decode("utf-8")
     # CSS for custom loading icon
     loading_icon_css = f"""
